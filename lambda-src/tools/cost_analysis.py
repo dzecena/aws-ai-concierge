@@ -6,6 +6,7 @@ import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 from botocore.exceptions import ClientError
+from utils.audit_logger import AuditLogger
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,7 @@ class CostAnalysisHandler:
     
     def __init__(self, aws_clients):
         self.aws_clients = aws_clients
+        self.audit_logger = AuditLogger()
     
     def get_cost_analysis(self, params: Dict[str, Any], request_id: str) -> Dict[str, Any]:
         """
@@ -101,12 +103,26 @@ class CostAnalysisHandler:
                 ]
             }
             
-            # Execute the cost analysis
+            # Execute the cost analysis with audit logging
             logger.info(f"[{request_id}] Executing Cost Explorer API call")
-            response = ce_client.get_cost_and_usage(**cost_request)
+            response = self.aws_clients.make_api_call(
+                client=ce_client,
+                operation='get_cost_and_usage',
+                request_id=request_id,
+                **cost_request
+            )
             
             # Process the response
             result = self._process_cost_response(response, time_period, group_by, start_date, end_date)
+            
+            # Log cost analysis activity
+            self.audit_logger.log_cost_analysis(
+                request_id=request_id,
+                time_period=f"{start_date} to {end_date}",
+                total_cost=result.get('total_cost', 0),
+                currency='USD',
+                optimization_opportunities=len(result.get('optimization_recommendations', []))
+            )
             
             logger.info(f"[{request_id}] Cost analysis completed successfully - Total cost: ${result.get('total_cost', 0):.2f}")
             return result

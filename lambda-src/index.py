@@ -6,12 +6,14 @@ Main handler for Bedrock Agent action group tools
 import json
 import logging
 import os
+import time
 from typing import Dict, Any, Optional
 from datetime import datetime
 
 from utils.error_handler import ErrorHandler
 from utils.response_formatter import ResponseFormatter
 from utils.aws_clients import AWSClientManager
+from utils.audit_logger import AuditLogger
 from tools.cost_analysis import CostAnalysisHandler
 from tools.resource_discovery import ResourceDiscoveryHandler
 from tools.security_assessment import SecurityAssessmentHandler
@@ -24,6 +26,7 @@ logger.setLevel(os.getenv('LOG_LEVEL', 'INFO'))
 error_handler = ErrorHandler()
 response_formatter = ResponseFormatter()
 aws_clients = AWSClientManager()
+audit_logger = AuditLogger()
 
 # Initialize tool handlers
 cost_handler = CostAnalysisHandler(aws_clients)
@@ -55,6 +58,8 @@ def handler(event: Dict[str, Any], context) -> Dict[str, Any]:
         Formatted response for Bedrock Agent or API Gateway
     """
     request_id = context.aws_request_id
+    start_time = time.time()
+    
     logger.info(f"[{request_id}] Processing request: {json.dumps(event, default=str)}")
     
     try:
@@ -80,12 +85,32 @@ def handler(event: Dict[str, Any], context) -> Dict[str, Any]:
             # Determine the operation based on API path
             operation = _extract_operation_from_path(api_path)
             
+            # Log request received
+            audit_logger.log_request_received(
+                request_id=request_id,
+                event_source='bedrock_agent',
+                operation=operation,
+                parameters=params_dict,
+                user_context={'action_group': action, 'api_path': api_path}
+            )
+            
             if operation not in TOOL_ROUTES:
                 raise ValueError(f"Unknown operation: {operation}")
                 
-            # Execute the appropriate tool handler
+            # Execute the appropriate tool handler with timing
+            tool_start_time = time.time()
             tool_function = TOOL_ROUTES[operation]
             result = tool_function(params_dict, request_id)
+            tool_execution_time = (time.time() - tool_start_time) * 1000
+            
+            # Log tool invocation
+            audit_logger.log_tool_invocation(
+                request_id=request_id,
+                tool_name=operation,
+                parameters=params_dict,
+                execution_time_ms=tool_execution_time,
+                success=True
+            )
             
             # Format successful response for Bedrock Agent
             response = response_formatter.format_success_response(
@@ -111,14 +136,45 @@ def handler(event: Dict[str, Any], context) -> Dict[str, Any]:
             # Determine the operation based on path
             operation = _extract_operation_from_path(path)
             
+            # Log request received
+            audit_logger.log_request_received(
+                request_id=request_id,
+                event_source='api_gateway',
+                operation=operation,
+                parameters=params_dict,
+                user_context={'path': path, 'method': http_method}
+            )
+            
             if operation not in TOOL_ROUTES:
                 raise ValueError(f"Unknown operation: {operation}")
                 
-            # Execute the appropriate tool handler
+            # Execute the appropriate tool handler with timing
+            tool_start_time = time.time()
             tool_function = TOOL_ROUTES[operation]
             result = tool_function(params_dict, request_id)
+            tool_execution_time = (time.time() - tool_start_time) * 1000
+            
+            # Log tool invocation
+            audit_logger.log_tool_invocation(
+                request_id=request_id,
+                tool_name=operation,
+                parameters=params_dict,
+                execution_time_ms=tool_execution_time,
+                success=True
+            )
             
             # Format successful response for API Gateway
+            response_body = {
+                'success': True,
+                'operation': operation,
+                'data': result,
+                'metadata': {
+                    'request_id': request_id,
+                    'timestamp': datetime.utcnow().isoformat(),
+                    'version': '1.0'
+                }
+            }
+            
             response = {
                 'statusCode': 200,
                 'headers': {
@@ -127,16 +183,7 @@ def handler(event: Dict[str, Any], context) -> Dict[str, Any]:
                     'Access-Control-Allow-Methods': 'POST, OPTIONS',
                     'Access-Control-Allow-Headers': 'Content-Type, X-Amz-Date, Authorization, X-Api-Key'
                 },
-                'body': json.dumps({
-                    'success': True,
-                    'operation': operation,
-                    'data': result,
-                    'metadata': {
-                        'request_id': request_id,
-                        'timestamp': datetime.utcnow().isoformat(),
-                        'version': '1.0'
-                    }
-                })
+                'body': json.dumps(response_body)
             }
             
         else:
@@ -151,35 +198,96 @@ def handler(event: Dict[str, Any], context) -> Dict[str, Any]:
                 }
             }
         
-        logger.info(f"[{request_id}] Successfully processed request")
+        # Log successful response
+        processing_time = (time.time() - start_time) * 1000
+        response_size = len(json.dumps(response, default=str).encode('utf-8'))
+        
+        audit_logger.log_response_sent(
+            request_id=request_id,
+            operation=operation if 'operation' in locals() else 'unknown',
+            response_size_bytes=response_size,
+            processing_time_ms=processing_time,
+            success=True
+        )
+        
+        logger.info(f"[{request_id}] Successfully processed request in {processing_time:.2f}ms")
         return response
         
     except Exception as e:
+        processing_time = (time.time() - start_time) * 1000
         logger.error(f"[{request_id}] Error processing request: {str(e)}", exc_info=True)
         
         # Format error response
         error_response = error_handler.handle_error(e, request_id)
         
+        # Log error occurred
+        operation = locals().get('operation', 'unknown')
+        audit_logger.log_error_occurred(
+            request_id=request_id,
+            error_type=type(e).__name__,
+            error_code=getattr(e, 'response', {}).get('Error', {}).get('Code'),
+            operation=operation,
+            severity=error_response.get('severity', 'error'),
+            user_impact=error_response.get('user_message', str(e))
+        )
+        
+        # Log failed tool invocation if we got that far
+        if 'tool_start_time' in locals():
+            tool_execution_time = (time.time() - tool_start_time) * 1000
+            audit_logger.log_tool_invocation(
+                request_id=request_id,
+                tool_name=operation,
+                parameters=locals().get('params_dict', {}),
+                execution_time_ms=tool_execution_time,
+                success=False
+            )
+        
         # Check if this is an API Gateway request for proper error formatting
         if 'httpMethod' in event or 'requestContext' in event:
-            return {
+            error_body = {
+                'success': False,
+                'error': error_response,
+                'metadata': {
+                    'request_id': request_id,
+                    'timestamp': datetime.utcnow().isoformat(),
+                    'version': '1.0'
+                }
+            }
+            
+            response = {
                 'statusCode': 500,
                 'headers': {
                     'Content-Type': 'application/json',
                     'Access-Control-Allow-Origin': '*'
                 },
-                'body': json.dumps({
-                    'success': False,
-                    'error': error_response,
-                    'metadata': {
-                        'request_id': request_id,
-                        'timestamp': datetime.utcnow().isoformat(),
-                        'version': '1.0'
-                    }
-                })
+                'body': json.dumps(error_body)
             }
+            
+            # Log error response
+            response_size = len(json.dumps(response).encode('utf-8'))
+            audit_logger.log_response_sent(
+                request_id=request_id,
+                operation=operation,
+                response_size_bytes=response_size,
+                processing_time_ms=processing_time,
+                success=False
+            )
+            
+            return response
         else:
-            return response_formatter.format_error_response(error_response, request_id)
+            response = response_formatter.format_error_response(error_response, request_id)
+            
+            # Log error response
+            response_size = len(json.dumps(response, default=str).encode('utf-8'))
+            audit_logger.log_response_sent(
+                request_id=request_id,
+                operation=operation,
+                response_size_bytes=response_size,
+                processing_time_ms=processing_time,
+                success=False
+            )
+            
+            return response
 
 
 def _extract_operation_from_path(api_path: str) -> str:

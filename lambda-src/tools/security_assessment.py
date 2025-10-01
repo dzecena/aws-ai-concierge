@@ -6,6 +6,7 @@ import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 from botocore.exceptions import ClientError
+from utils.audit_logger import AuditLogger
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,7 @@ class SecurityAssessmentHandler:
     
     def __init__(self, aws_clients):
         self.aws_clients = aws_clients
+        self.audit_logger = AuditLogger()
     
     def get_security_assessment(self, params: Dict[str, Any], request_id: str) -> Dict[str, Any]:
         """
@@ -63,6 +65,15 @@ class SecurityAssessmentHandler:
                 'recommendations': recommendations,
                 'assessment_date': datetime.utcnow().isoformat()
             }
+            
+            # Log security assessment activity
+            self.audit_logger.log_security_check(
+                request_id=request_id,
+                check_type=assessment_type,
+                resource_id=region,
+                findings_count=len(findings),
+                risk_score=risk_score
+            )
             
             logger.info(f"[{request_id}] Security assessment completed with {len(findings)} findings")
             return result

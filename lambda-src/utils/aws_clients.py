@@ -4,7 +4,8 @@ AWS client management utilities for AWS AI Concierge
 
 import boto3
 import logging
-from typing import Dict, Any, Optional
+import time
+from typing import Dict, Any, Optional, Callable
 from botocore.config import Config
 from botocore.exceptions import ClientError
 from functools import lru_cache
@@ -184,6 +185,74 @@ class AWSClientManager:
                 'error': 'UnknownError',
                 'message': str(e)
             }
+    
+    def make_api_call(self, client: Any, operation: str, request_id: str, **kwargs) -> Any:
+        """
+        Make an AWS API call with audit logging.
+        
+        Args:
+            client: Boto3 client
+            operation: API operation name
+            request_id: Request ID for tracking
+            **kwargs: API call parameters
+            
+        Returns:
+            API response
+        """
+        # Import here to avoid circular imports
+        from utils.audit_logger import AuditLogger
+        audit_logger = AuditLogger()
+        
+        service_name = client._service_model.service_name
+        region = client.meta.region_name if hasattr(client, 'meta') and hasattr(client.meta, 'region_name') else None
+        
+        try:
+            # Make the API call
+            start_time = time.time()
+            method = getattr(client, operation)
+            response = method(**kwargs)
+            
+            # Calculate response size (approximate)
+            response_size = len(str(response).encode('utf-8')) if response else 0
+            
+            # Log successful API call
+            audit_logger.log_aws_api_call(
+                request_id=request_id,
+                service=service_name,
+                operation=operation,
+                region=region,
+                success=True,
+                response_size_bytes=response_size
+            )
+            
+            return response
+            
+        except ClientError as e:
+            error_code = e.response.get('Error', {}).get('Code', 'Unknown')
+            
+            # Log failed API call
+            audit_logger.log_aws_api_call(
+                request_id=request_id,
+                service=service_name,
+                operation=operation,
+                region=region,
+                success=False,
+                error_code=error_code
+            )
+            
+            raise
+        except Exception as e:
+            # Log failed API call
+            audit_logger.log_aws_api_call(
+                request_id=request_id,
+                service=service_name,
+                operation=operation,
+                region=region,
+                success=False,
+                error_code='UnknownError'
+            )
+            
+            raise
     
     def clear_client_cache(self):
         """Clear the client cache (useful for testing)."""

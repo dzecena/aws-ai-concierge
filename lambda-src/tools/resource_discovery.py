@@ -6,6 +6,7 @@ import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 from botocore.exceptions import ClientError
+from utils.audit_logger import AuditLogger
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,7 @@ class ResourceDiscoveryHandler:
     
     def __init__(self, aws_clients):
         self.aws_clients = aws_clients
+        self.audit_logger = AuditLogger()
     
     def get_resource_inventory(self, params: Dict[str, Any], request_id: str) -> Dict[str, Any]:
         """
@@ -58,6 +60,15 @@ class ResourceDiscoveryHandler:
                 'total_count': len(resources),
                 'inventory_date': datetime.utcnow().isoformat()
             }
+            
+            # Log resource access activity
+            self.audit_logger.log_resource_access(
+                request_id=request_id,
+                resource_type=resource_type,
+                resource_count=len(resources),
+                regions=[region] if region else [],
+                sensitive_data_accessed=False
+            )
             
             logger.info(f"[{request_id}] Found {len(resources)} resources")
             return result
