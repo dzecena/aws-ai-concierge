@@ -36,6 +36,7 @@ TOOL_ROUTES = {
     'getIdleResources': cost_handler.get_idle_resources,
     'getResourceInventory': resource_handler.get_resource_inventory,
     'getResourceDetails': resource_handler.get_resource_details,
+    'getResourceHealth': resource_handler.get_resource_health_status,
     'getSecurityAssessment': security_handler.get_security_assessment,
     'checkEncryptionStatus': security_handler.check_encryption_status,
 }
@@ -118,6 +119,7 @@ def _extract_operation_from_path(api_path: str) -> str:
         '/idle-resources': 'getIdleResources',
         '/resource-inventory': 'getResourceInventory',
         '/resource-details': 'getResourceDetails',
+        '/resource-health': 'getResourceHealth',
         '/security-assessment': 'getSecurityAssessment',
         '/encryption-status': 'checkEncryptionStatus',
     }

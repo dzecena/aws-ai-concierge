@@ -4,7 +4,7 @@ Resource discovery tools for AWS AI Concierge
 
 import logging
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 from botocore.exceptions import ClientError
 
 logger = logging.getLogger(__name__)
@@ -86,6 +86,7 @@ class ResourceDiscoveryHandler:
             resource_id = params.get('resource_id')
             resource_type = params.get('resource_type')
             region = params.get('region', 'us-east-1')
+            include_health = params.get('include_health', True)
             
             if not resource_id or not resource_type:
                 raise ValueError("resource_id and resource_type are required")
@@ -100,6 +101,13 @@ class ResourceDiscoveryHandler:
                 details = self._get_lambda_function_details(resource_id, region, request_id)
             else:
                 raise ValueError(f"Unsupported resource type: {resource_type}")
+            
+            # Add health metrics if requested
+            if include_health and resource_type in ['EC2', 'RDS', 'LAMBDA']:
+                health_metrics = self._get_resource_health_metrics(
+                    resource_id, resource_type, region, request_id
+                )
+                details['health_metrics'] = health_metrics
             
             result = {
                 'resource_id': resource_id,
@@ -117,6 +125,58 @@ class ResourceDiscoveryHandler:
             raise
         except Exception as e:
             logger.error(f"[{request_id}] Error getting resource details: {str(e)}")
+            raise
+    
+    def get_resource_health_status(self, params: Dict[str, Any], request_id: str) -> Dict[str, Any]:
+        """
+        Get health status and metrics for a specific resource.
+        
+        Args:
+            params: Parameters including resource_id, resource_type, region
+            request_id: Request ID for tracking
+            
+        Returns:
+            Resource health status and metrics
+        """
+        logger.info(f"[{request_id}] Getting resource health status with params: {params}")
+        
+        try:
+            resource_id = params.get('resource_id')
+            resource_type = params.get('resource_type')
+            region = params.get('region', 'us-east-1')
+            
+            if not resource_id or not resource_type:
+                raise ValueError("resource_id and resource_type are required")
+            
+            # Get health metrics
+            health_metrics = self._get_resource_health_metrics(
+                resource_id, resource_type, region, request_id
+            )
+            
+            # Get CloudWatch alarms for the resource
+            alarms = self._get_resource_alarms(resource_id, resource_type, region, request_id)
+            
+            # Determine overall health status
+            overall_status = self._determine_health_status(health_metrics, alarms)
+            
+            result = {
+                'resource_id': resource_id,
+                'resource_type': resource_type,
+                'region': region,
+                'overall_status': overall_status,
+                'health_metrics': health_metrics,
+                'alarms': alarms,
+                'checked_at': datetime.utcnow().isoformat()
+            }
+            
+            logger.info(f"[{request_id}] Retrieved health status for {resource_type} {resource_id}")
+            return result
+            
+        except ClientError as e:
+            logger.error(f"[{request_id}] AWS error getting resource health: {str(e)}")
+            raise
+        except Exception as e:
+            logger.error(f"[{request_id}] Error getting resource health: {str(e)}")
             raise
     
     def _get_ec2_resources(self, region: str, request_id: str) -> List[Dict[str, Any]]:
@@ -338,4 +398,224 @@ class ResourceDiscoveryHandler:
         for tag in tags:
             if tag.get('Key') == 'Name':
                 return tag.get('Value')
-        return None
+        return None   
+ 
+    def _get_resource_health_metrics(self, resource_id: str, resource_type: str, region: str, request_id: str) -> Dict[str, Any]:
+        """Get CloudWatch health metrics for a resource."""
+        try:
+            cw_client = self.aws_clients.get_cloudwatch_client(region)
+            end_time = datetime.utcnow()
+            start_time = end_time - timedelta(hours=24)  # Last 24 hours
+            
+            metrics = {}
+            
+            if resource_type == 'EC2':
+                # Get EC2 metrics
+                ec2_metrics = {
+                    'CPUUtilization': {'namespace': 'AWS/EC2', 'stat': 'Average'},
+                    'NetworkIn': {'namespace': 'AWS/EC2', 'stat': 'Sum'},
+                    'NetworkOut': {'namespace': 'AWS/EC2', 'stat': 'Sum'},
+                    'DiskReadOps': {'namespace': 'AWS/EC2', 'stat': 'Sum'},
+                    'DiskWriteOps': {'namespace': 'AWS/EC2', 'stat': 'Sum'}
+                }
+                
+                for metric_name, config in ec2_metrics.items():
+                    try:
+                        response = cw_client.get_metric_statistics(
+                            Namespace=config['namespace'],
+                            MetricName=metric_name,
+                            Dimensions=[{'Name': 'InstanceId', 'Value': resource_id}],
+                            StartTime=start_time,
+                            EndTime=end_time,
+                            Period=3600,  # 1 hour periods
+                            Statistics=[config['stat']]
+                        )
+                        
+                        datapoints = response.get('Datapoints', [])
+                        if datapoints:
+                            latest_value = datapoints[-1][config['stat']]
+                            avg_value = sum(dp[config['stat']] for dp in datapoints) / len(datapoints)
+                            metrics[metric_name] = {
+                                'latest': round(latest_value, 2),
+                                'average_24h': round(avg_value, 2),
+                                'unit': datapoints[0].get('Unit', 'None'),
+                                'datapoints_count': len(datapoints)
+                            }
+                    except Exception as e:
+                        logger.warning(f"[{request_id}] Could not get {metric_name} for {resource_id}: {str(e)}")
+            
+            elif resource_type == 'RDS':
+                # Get RDS metrics
+                rds_metrics = {
+                    'CPUUtilization': {'namespace': 'AWS/RDS', 'stat': 'Average'},
+                    'DatabaseConnections': {'namespace': 'AWS/RDS', 'stat': 'Average'},
+                    'FreeableMemory': {'namespace': 'AWS/RDS', 'stat': 'Average'},
+                    'FreeStorageSpace': {'namespace': 'AWS/RDS', 'stat': 'Average'},
+                    'ReadLatency': {'namespace': 'AWS/RDS', 'stat': 'Average'},
+                    'WriteLatency': {'namespace': 'AWS/RDS', 'stat': 'Average'}
+                }
+                
+                for metric_name, config in rds_metrics.items():
+                    try:
+                        response = cw_client.get_metric_statistics(
+                            Namespace=config['namespace'],
+                            MetricName=metric_name,
+                            Dimensions=[{'Name': 'DBInstanceIdentifier', 'Value': resource_id}],
+                            StartTime=start_time,
+                            EndTime=end_time,
+                            Period=3600,
+                            Statistics=[config['stat']]
+                        )
+                        
+                        datapoints = response.get('Datapoints', [])
+                        if datapoints:
+                            latest_value = datapoints[-1][config['stat']]
+                            avg_value = sum(dp[config['stat']] for dp in datapoints) / len(datapoints)
+                            metrics[metric_name] = {
+                                'latest': round(latest_value, 2),
+                                'average_24h': round(avg_value, 2),
+                                'unit': datapoints[0].get('Unit', 'None'),
+                                'datapoints_count': len(datapoints)
+                            }
+                    except Exception as e:
+                        logger.warning(f"[{request_id}] Could not get {metric_name} for {resource_id}: {str(e)}")
+            
+            elif resource_type == 'LAMBDA':
+                # Get Lambda metrics
+                lambda_metrics = {
+                    'Invocations': {'namespace': 'AWS/Lambda', 'stat': 'Sum'},
+                    'Errors': {'namespace': 'AWS/Lambda', 'stat': 'Sum'},
+                    'Duration': {'namespace': 'AWS/Lambda', 'stat': 'Average'},
+                    'Throttles': {'namespace': 'AWS/Lambda', 'stat': 'Sum'},
+                    'ConcurrentExecutions': {'namespace': 'AWS/Lambda', 'stat': 'Maximum'}
+                }
+                
+                for metric_name, config in lambda_metrics.items():
+                    try:
+                        response = cw_client.get_metric_statistics(
+                            Namespace=config['namespace'],
+                            MetricName=metric_name,
+                            Dimensions=[{'Name': 'FunctionName', 'Value': resource_id}],
+                            StartTime=start_time,
+                            EndTime=end_time,
+                            Period=3600,
+                            Statistics=[config['stat']]
+                        )
+                        
+                        datapoints = response.get('Datapoints', [])
+                        if datapoints:
+                            if config['stat'] == 'Sum':
+                                total_value = sum(dp[config['stat']] for dp in datapoints)
+                                latest_value = datapoints[-1][config['stat']]
+                                metrics[metric_name] = {
+                                    'latest': round(latest_value, 2),
+                                    'total_24h': round(total_value, 2),
+                                    'unit': datapoints[0].get('Unit', 'None'),
+                                    'datapoints_count': len(datapoints)
+                                }
+                            else:
+                                latest_value = datapoints[-1][config['stat']]
+                                avg_value = sum(dp[config['stat']] for dp in datapoints) / len(datapoints)
+                                metrics[metric_name] = {
+                                    'latest': round(latest_value, 2),
+                                    'average_24h': round(avg_value, 2),
+                                    'unit': datapoints[0].get('Unit', 'None'),
+                                    'datapoints_count': len(datapoints)
+                                }
+                    except Exception as e:
+                        logger.warning(f"[{request_id}] Could not get {metric_name} for {resource_id}: {str(e)}")
+            
+            return {
+                'metrics': metrics,
+                'period_hours': 24,
+                'last_updated': datetime.utcnow().isoformat()
+            }
+            
+        except Exception as e:
+            logger.warning(f"[{request_id}] Could not get health metrics for {resource_id}: {str(e)}")
+            return {'metrics': {}, 'error': str(e)}
+    
+    def _get_resource_alarms(self, resource_id: str, resource_type: str, region: str, request_id: str) -> List[Dict[str, Any]]:
+        """Get CloudWatch alarms for a resource."""
+        try:
+            cw_client = self.aws_clients.get_cloudwatch_client(region)
+            
+            # Get alarms for the resource
+            if resource_type == 'EC2':
+                dimension_name = 'InstanceId'
+            elif resource_type == 'RDS':
+                dimension_name = 'DBInstanceIdentifier'
+            elif resource_type == 'LAMBDA':
+                dimension_name = 'FunctionName'
+            else:
+                return []
+            
+            response = cw_client.describe_alarms_for_metric(
+                MetricName='CPUUtilization',  # Start with CPU utilization
+                Namespace=f'AWS/{resource_type}',
+                Dimensions=[{'Name': dimension_name, 'Value': resource_id}]
+            )
+            
+            alarms = []
+            for alarm in response.get('MetricAlarms', []):
+                alarms.append({
+                    'alarm_name': alarm['AlarmName'],
+                    'alarm_description': alarm.get('AlarmDescription', ''),
+                    'state_value': alarm['StateValue'],
+                    'state_reason': alarm.get('StateReason', ''),
+                    'metric_name': alarm['MetricName'],
+                    'comparison_operator': alarm['ComparisonOperator'],
+                    'threshold': alarm['Threshold'],
+                    'evaluation_periods': alarm['EvaluationPeriods'],
+                    'period': alarm['Period'],
+                    'statistic': alarm['Statistic'],
+                    'actions_enabled': alarm['ActionsEnabled'],
+                    'alarm_actions': alarm.get('AlarmActions', []),
+                    'state_updated_timestamp': alarm.get('StateUpdatedTimestamp', '').isoformat() if alarm.get('StateUpdatedTimestamp') else None
+                })
+            
+            return alarms
+            
+        except Exception as e:
+            logger.warning(f"[{request_id}] Could not get alarms for {resource_id}: {str(e)}")
+            return []
+    
+    def _determine_health_status(self, health_metrics: Dict[str, Any], alarms: List[Dict[str, Any]]) -> str:
+        """Determine overall health status based on metrics and alarms."""
+        # Check alarm states
+        alarm_states = [alarm['state_value'] for alarm in alarms]
+        
+        if 'ALARM' in alarm_states:
+            return 'UNHEALTHY'
+        elif 'INSUFFICIENT_DATA' in alarm_states:
+            return 'UNKNOWN'
+        elif alarm_states and all(state == 'OK' for state in alarm_states):
+            return 'HEALTHY'
+        
+        # If no alarms, check basic metrics
+        metrics = health_metrics.get('metrics', {})
+        
+        # Check CPU utilization if available
+        if 'CPUUtilization' in metrics:
+            cpu_latest = metrics['CPUUtilization'].get('latest', 0)
+            if cpu_latest > 90:
+                return 'WARNING'
+            elif cpu_latest > 95:
+                return 'UNHEALTHY'
+        
+        # Check error rates for Lambda
+        if 'Errors' in metrics and 'Invocations' in metrics:
+            errors = metrics['Errors'].get('total_24h', 0)
+            invocations = metrics['Invocations'].get('total_24h', 0)
+            if invocations > 0:
+                error_rate = (errors / invocations) * 100
+                if error_rate > 5:
+                    return 'WARNING'
+                elif error_rate > 10:
+                    return 'UNHEALTHY'
+        
+        # Default to healthy if we have metrics
+        if metrics:
+            return 'HEALTHY'
+        else:
+            return 'UNKNOWN'

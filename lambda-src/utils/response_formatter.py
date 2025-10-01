@@ -125,6 +125,7 @@ class ResponseFormatter:
             'getIdleResources': '/idle-resources',
             'getResourceInventory': '/resource-inventory',
             'getResourceDetails': '/resource-details',
+            'getResourceHealth': '/resource-health',
             'getSecurityAssessment': '/security-assessment',
             'checkEncryptionStatus': '/encryption-status',
         }
