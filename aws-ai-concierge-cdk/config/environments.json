@@ -1,0 +1,61 @@
+{
+  "dev": {
+    "description": "Development environment for testing and development",
+    "logRetentionDays": 7,
+    "lambdaMemorySize": 512,
+    "lambdaTimeout": 180,
+    "enableDetailedMonitoring": false,
+    "enableXRayTracing": false,
+    "removalPolicy": "DESTROY",
+    "concurrentExecutions": 10,
+    "apiThrottling": {
+      "rateLimit": 100,
+      "burstLimit": 200
+    },
+    "tags": {
+      "CostCenter": "Engineering-Dev",
+      "Owner": "Development-Team",
+      "AutoShutdown": "true"
+    }
+  },
+  "staging": {
+    "description": "Staging environment for pre-production testing",
+    "logRetentionDays": 30,
+    "lambdaMemorySize": 768,
+    "lambdaTimeout": 240,
+    "enableDetailedMonitoring": true,
+    "enableXRayTracing": true,
+    "removalPolicy": "RETAIN",
+    "concurrentExecutions": 50,
+    "apiThrottling": {
+      "rateLimit": 500,
+      "burstLimit": 1000
+    },
+    "tags": {
+      "CostCenter": "Engineering-Staging",
+      "Owner": "QA-Team",
+      "AutoShutdown": "false"
+    }
+  },
+  "prod": {
+    "description": "Production environment for live workloads",
+    "logRetentionDays": 90,
+    "lambdaMemorySize": 1024,
+    "lambdaTimeout": 300,
+    "enableDetailedMonitoring": true,
+    "enableXRayTracing": true,
+    "removalPolicy": "RETAIN",
+    "concurrentExecutions": 100,
+    "apiThrottling": {
+      "rateLimit": 1000,
+      "burstLimit": 2000
+    },
+    "tags": {
+      "CostCenter": "Engineering-Prod",
+      "Owner": "DevOps-Team",
+      "AutoShutdown": "false",
+      "BackupRequired": "true",
+      "Compliance": "SOC2"
+    }
+  }
+}
