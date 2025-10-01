@@ -48,7 +48,9 @@
 
 
 
+
   - Configure agent instructions for AWS concierge persona and tool usage guidelines
+
   - Link OpenAPI specification from S3 to enable tool discovery and invocation
 
   - Test agent responses to ensure proper tool selection and natural language processing
@@ -56,7 +58,11 @@
 
 
 
+
   - _Requirements: 4.1, 4.2, 4.4, 4.5_
+
+
+
 
 
 
