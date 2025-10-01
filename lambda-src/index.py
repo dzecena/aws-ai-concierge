@@ -45,54 +45,113 @@ TOOL_ROUTES = {
 def handler(event: Dict[str, Any], context) -> Dict[str, Any]:
     """
     Main Lambda handler for AWS AI Concierge tools.
+    Supports both Bedrock Agent events and API Gateway events.
     
     Args:
         event: Lambda event containing the action and parameters
         context: Lambda context object
         
     Returns:
-        Formatted response for Bedrock Agent
+        Formatted response for Bedrock Agent or API Gateway
     """
     request_id = context.aws_request_id
     logger.info(f"[{request_id}] Processing request: {json.dumps(event, default=str)}")
     
     try:
-        # Extract action from event
-        action = event.get('actionGroup', '')
-        api_path = event.get('apiPath', '')
-        http_method = event.get('httpMethod', 'POST')
-        parameters = event.get('parameters', [])
-        
-        # Convert parameters list to dict for easier handling
-        params_dict = {}
-        if isinstance(parameters, list):
-            for param in parameters:
-                if isinstance(param, dict) and 'name' in param and 'value' in param:
-                    params_dict[param['name']] = param['value']
-        elif isinstance(parameters, dict):
-            params_dict = parameters
+        # Detect event source (Bedrock Agent vs API Gateway)
+        if 'actionGroup' in event:
+            # Bedrock Agent event
+            action = event.get('actionGroup', '')
+            api_path = event.get('apiPath', '')
+            http_method = event.get('httpMethod', 'POST')
+            parameters = event.get('parameters', [])
             
-        logger.info(f"[{request_id}] Action: {action}, API Path: {api_path}, Method: {http_method}")
-        logger.info(f"[{request_id}] Parameters: {params_dict}")
-        
-        # Determine the operation based on API path
-        operation = _extract_operation_from_path(api_path)
-        
-        if operation not in TOOL_ROUTES:
-            raise ValueError(f"Unknown operation: {operation}")
+            # Convert parameters list to dict for easier handling
+            params_dict = {}
+            if isinstance(parameters, list):
+                for param in parameters:
+                    if isinstance(param, dict) and 'name' in param and 'value' in param:
+                        params_dict[param['name']] = param['value']
+            elif isinstance(parameters, dict):
+                params_dict = parameters
+                
+            logger.info(f"[{request_id}] Bedrock Agent - Action: {action}, API Path: {api_path}, Method: {http_method}")
             
-        # Execute the appropriate tool handler
-        tool_function = TOOL_ROUTES[operation]
-        result = tool_function(params_dict, request_id)
+            # Determine the operation based on API path
+            operation = _extract_operation_from_path(api_path)
+            
+            if operation not in TOOL_ROUTES:
+                raise ValueError(f"Unknown operation: {operation}")
+                
+            # Execute the appropriate tool handler
+            tool_function = TOOL_ROUTES[operation]
+            result = tool_function(params_dict, request_id)
+            
+            # Format successful response for Bedrock Agent
+            response = response_formatter.format_success_response(
+                result, 
+                operation, 
+                request_id
+            )
+            
+        elif 'httpMethod' in event or 'requestContext' in event:
+            # API Gateway event
+            path = event.get('path', '')
+            http_method = event.get('httpMethod', 'POST')
+            body = event.get('body', '{}')
+            
+            # Parse request body
+            if isinstance(body, str):
+                params_dict = json.loads(body) if body else {}
+            else:
+                params_dict = body or {}
+                
+            logger.info(f"[{request_id}] API Gateway - Path: {path}, Method: {http_method}")
+            
+            # Determine the operation based on path
+            operation = _extract_operation_from_path(path)
+            
+            if operation not in TOOL_ROUTES:
+                raise ValueError(f"Unknown operation: {operation}")
+                
+            # Execute the appropriate tool handler
+            tool_function = TOOL_ROUTES[operation]
+            result = tool_function(params_dict, request_id)
+            
+            # Format successful response for API Gateway
+            response = {
+                'statusCode': 200,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+                    'Access-Control-Allow-Headers': 'Content-Type, X-Amz-Date, Authorization, X-Api-Key'
+                },
+                'body': json.dumps({
+                    'success': True,
+                    'operation': operation,
+                    'data': result,
+                    'metadata': {
+                        'request_id': request_id,
+                        'timestamp': datetime.utcnow().isoformat(),
+                        'version': '1.0'
+                    }
+                })
+            }
+            
+        else:
+            # Legacy/direct invocation
+            action = event.get('action', 'unknown')
+            response = {
+                'statusCode': 200,
+                'body': {
+                    'message': f'AWS AI Concierge received action: {action}',
+                    'timestamp': request_id,
+                    'function_version': context.function_version
+                }
+            }
         
-        # Format successful response
-        response = response_formatter.format_success_response(
-            result, 
-            operation, 
-            request_id
-        )
-        
-        logger.info(f"[{request_id}] Successfully processed {operation}")
+        logger.info(f"[{request_id}] Successfully processed request")
         return response
         
     except Exception as e:
@@ -100,7 +159,27 @@ def handler(event: Dict[str, Any], context) -> Dict[str, Any]:
         
         # Format error response
         error_response = error_handler.handle_error(e, request_id)
-        return response_formatter.format_error_response(error_response, request_id)
+        
+        # Check if this is an API Gateway request for proper error formatting
+        if 'httpMethod' in event or 'requestContext' in event:
+            return {
+                'statusCode': 500,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                'body': json.dumps({
+                    'success': False,
+                    'error': error_response,
+                    'metadata': {
+                        'request_id': request_id,
+                        'timestamp': datetime.utcnow().isoformat(),
+                        'version': '1.0'
+                    }
+                })
+            }
+        else:
+            return response_formatter.format_error_response(error_response, request_id)
 
 
 def _extract_operation_from_path(api_path: str) -> str:

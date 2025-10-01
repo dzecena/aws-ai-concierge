@@ -3,6 +3,7 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as logs from 'aws-cdk-lib/aws-logs';
+import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import { Construct } from 'constructs';
 
 export class AwsAiConciergeCdkStack extends cdk.Stack {
@@ -162,10 +163,60 @@ export class AwsAiConciergeCdkStack extends cdk.Stack {
       logGroup: lambdaLogGroup,
     });
 
+    // API Gateway for Lambda integration
+    const api = new apigateway.RestApi(this, 'ConciergeApi', {
+      restApiName: 'AWS AI Concierge API',
+      description: 'API Gateway for AWS AI Concierge Lambda function',
+      defaultCorsPreflightOptions: {
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        allowMethods: apigateway.Cors.ALL_METHODS,
+        allowHeaders: ['Content-Type', 'X-Amz-Date', 'Authorization', 'X-Api-Key'],
+      },
+      deployOptions: {
+        stageName: 'prod',
+        metricsEnabled: true,
+      },
+    });
+
+    // Lambda integration
+    const lambdaIntegration = new apigateway.LambdaIntegration(conciergeFunction, {
+      requestTemplates: { 'application/json': '{ "statusCode": "200" }' },
+      proxy: true,
+    });
+
+    // Add API Gateway endpoints for each tool
+    const endpoints = [
+      'cost-analysis',
+      'idle-resources', 
+      'resource-inventory',
+      'resource-details',
+      'resource-health',
+      'security-assessment',
+      'encryption-status'
+    ];
+
+    endpoints.forEach(endpoint => {
+      const resource = api.root.addResource(endpoint);
+      resource.addMethod('POST', lambdaIntegration, {
+        apiKeyRequired: false,
+        authorizationType: apigateway.AuthorizationType.NONE,
+      });
+    });
+
     // Outputs for reference
     new cdk.CfnOutput(this, 'OpenApiBucketName', {
       value: openApiBucket.bucketName,
       description: 'S3 bucket name for OpenAPI specification',
+    });
+
+    new cdk.CfnOutput(this, 'OpenApiSpecUrl', {
+      value: `https://${openApiBucket.bucketName}.s3.amazonaws.com/aws-ai-concierge-tools.yaml`,
+      description: 'URL to OpenAPI specification in S3',
+    });
+
+    new cdk.CfnOutput(this, 'ApiGatewayUrl', {
+      value: api.url,
+      description: 'API Gateway URL for tool invocation',
     });
 
     new cdk.CfnOutput(this, 'LambdaFunctionName', {
