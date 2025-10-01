@@ -43,6 +43,9 @@
 
 - [ ] 7. Configure and deploy Bedrock Agent
   - Create Bedrock Agent with Claude 3 Haiku model configuration
+
+
+
   - Configure agent instructions for AWS concierge persona and tool usage guidelines
   - Link OpenAPI specification from S3 to enable tool discovery and invocation
   - Test agent responses to ensure proper tool selection and natural language processing
