@@ -1,92 +1,307 @@
-# aws-ai-concierge
-An AI-powered concierge to simplify interactions and automate tasks within the Amazon Web Services (AWS) ecosystem
-
 # AWS AI Concierge
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/your-username/aws-ai-concierge)
-[![Release Version](https://img.shields.io/badge/version-0.1.0--alpha-blue)](https://github.com/your-username/aws-ai-concierge)
+An intelligent AI assistant for AWS resource management and monitoring through natural language interactions. Built with Amazon Bedrock, AWS Lambda, and CDK.
 
-An intelligent AI assistant designed to manage, monitor, and simplify your Amazon Web Services (AWS) environment through natural language.
+## 🎯 Overview
 
-## About The Project
+The AWS AI Concierge translates natural language queries into AWS API calls, providing intelligent insights about your cloud infrastructure. Ask questions like "What are my AWS costs this month?" or "Show me idle EC2 instances" and get actionable responses.
 
-Managing AWS resources can be complex, often requiring deep knowledge of the AWS Management Console, CLI commands, or SDKs. The **AWS AI Concierge** aims to solve this problem by providing a conversational interface to your cloud infrastructure.
+### Key Features
 
-This project leverages the power of Large Language Models (LLMs) to translate human language into actionable AWS API calls. Whether you're a developer needing to quickly spin up a test environment or a manager wanting a cost summary, the concierge is your go-to assistant for efficient cloud operations.
+- 💰 **Cost Analysis**: Analyze spending patterns and identify optimization opportunities
+- 🔍 **Resource Discovery**: Inventory and monitor AWS resources across regions
+- 🛡️ **Security Assessment**: Identify security vulnerabilities and compliance issues
+- 🤖 **Natural Language Interface**: Interact using plain English queries
+- 📊 **Comprehensive Logging**: Complete audit trail for compliance
+- ⚡ **Serverless Architecture**: Pay-per-use with automatic scaling
 
-### Built With
+## 🏗️ Architecture
 
-This project is built with a modern, serverless architecture on AWS:
+```
+User Query → API Gateway → Lambda Functions → AWS APIs
+     ↓
+Amazon Bedrock Agent (Claude 3 Haiku) → OpenAPI Tools → Formatted Response
+```
 
-* [![Python][Python.js]][Python-url]
-* [![AWS Lambda][AWS-Lambda.com]][AWS-Lambda-url]
-* [![Amazon Bedrock][Amazon-Bedrock.com]][Amazon-Bedrock-url]
-* [![Amazon API Gateway][API-Gateway.com]][API-Gateway-url]
-* [![AWS CDK][AWS-CDK.com]][AWS-CDK-url]
+### Components
 
-## Getting Started
+- **Amazon Bedrock Agent**: Natural language processing with Claude 3 Haiku
+- **AWS Lambda**: Serverless functions for AWS API interactions
+- **API Gateway**: RESTful API endpoints for tool invocation
+- **S3**: OpenAPI specification storage
+- **CloudWatch**: Logging and monitoring
+- **IAM**: Read-only permissions with principle of least privilege
 
-Follow these instructions to get a copy of the project up and running on your local machine for development and testing purposes.
+## 🚀 Quick Start
 
 ### Prerequisites
 
-You will need the following tools installed and configured:
-* An AWS account with appropriate permissions.
-* [AWS CLI](https://aws.amazon.com/cli/) configured on your machine.
-* [Python 3.9+](https://www.python.org/downloads/)
-* [AWS CDK v2](https://docs.aws.amazon.com/cdk/v2/guide/getting_started.html)
+- AWS CLI configured with appropriate permissions
+- Node.js 18+ and npm
+- AWS CDK CLI (`npm install -g aws-cdk`)
+- PowerShell (for Windows) or Bash (for Linux/macOS)
 
-### Installation
+### 1. Deploy Infrastructure
 
-1.  **Clone the repository:**
-    ```sh
-    git clone [https://github.com/your-username/aws-ai-concierge.git](https://github.com/your-username/aws-ai-concierge.git)
-    cd aws-ai-concierge
-    ```
-2.  **Create and activate a virtual environment:**
-    ```sh
-    python -m venv .venv
-    source .venv/bin/activate
-    ```
-3.  **Install dependencies:**
-    ```sh
-    pip install -r requirements.txt
-    ```
-4.  **Configure environment variables:**
-    * _**(Note to developer: This section to be completed after POC)**_
-    * Create a `.env` file from the `.env.example` template and populate it with the necessary configuration, such as the Bedrock model ID or other service parameters.
+```powershell
+# Navigate to CDK directory
+cd aws-ai-concierge-cdk
 
-5.  **Deploy the stack to your AWS account:**
-    ```sh
-    cdk deploy
-    ```
+# Install dependencies and deploy
+npm install
+npm run build
+.\scripts\deploy.ps1 -Environment dev
+```
 
-## Usage
+### 2. Create Bedrock Agent
 
-Once deployed, the concierge can be interacted with through a secure API endpoint.
+```powershell
+# Create the AI agent
+.\scripts\create-bedrock-agent.ps1 -Environment dev
+```
 
-> **Note:** This section will be completed with detailed examples and usage patterns once the initial Proof of Concept is validated.
+### 3. Test Your AI Concierge
 
-## Roadmap
+**Option 1: AWS Console (Recommended)**
+1. Go to AWS Console → Amazon Bedrock → Agents
+2. Find your agent: `aws-ai-concierge-dev`
+3. Click "Test" and try queries like:
+   - "What are my AWS costs this month?"
+   - "Show me idle EC2 instances"
+   - "What security issues should I be concerned about?"
 
-This project is currently in the Proof of Concept phase. Our vision includes:
+**Option 2: Integration Tests**
+```powershell
+cd integration-tests
+python simple_test_runner.py --environment dev
+```
 
--   [x] **Core POC:** Basic query engine for read-only actions (e.g., `describe`, `list`).
--   [ ] **Write Actions:** Add capabilities to create, update, and terminate resources.
--   [ ] **ChatOps Integration:** Connect the concierge to Slack or Microsoft Teams.
--   [ ] **Multi-Step Workflows:** Enable complex, chained commands (e.g., "Provision a new staging environment").
--   [ ] **Web UI:** Develop a simple user interface for easier interaction.
+## 💰 Cost Management
 
-See the [open issues](https://github.com/your-username/aws-ai-concierge/issues) for a full list of proposed features (and known issues).
+### 🚨 Important: POC Cost Control
 
-## Contributing
+This project uses pay-per-use AWS services. **Bedrock is the primary cost driver** (~$0.01-0.05 per query).
 
-Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+### Quick Cleanup (Recommended for POC)
 
-Please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
-For more details, please refer to our `CONTRIBUTING.md` file (coming soon).
+```powershell
+# Delete all resources to avoid ongoing costs
+cd aws-ai-concierge-cdk
+.\scripts\cleanup-environment.ps1 -Environment dev
+```
 
-## License
+### Cost Estimation
 
-Distributed under the MIT License. See `LICENSE` for more
+```powershell
+# View detailed cost breakdown
+.\scripts\estimate-costs.ps1 -Environment dev
+```
+
+### POC Workflow
+
+1. **Deploy when testing**: `.\scripts\deploy.ps1 -Environment dev`
+2. **Test your queries**: Use AWS Console or integration tests
+3. **Clean up after testing**: `.\scripts\cleanup-environment.ps1 -Environment dev`
+4. **Redeploy for demos**: Takes only 5-10 minutes
+
+### Cost Breakdown
+
+| Service | Cost | Notes |
+|---------|------|-------|
+| **Bedrock (Claude 3 Haiku)** | ~$0.01-0.05/query | **Main cost driver** |
+| Lambda | Pay-per-invocation | Usually within free tier |
+| API Gateway | Pay-per-request | Usually within free tier |
+| S3 Storage | <$0.01/month | OpenAPI spec storage |
+| CloudWatch Logs | <$1/month | Within free tier for POC |
+| IAM Roles | **FREE** | No cost when not in use |
+
+**Estimated POC costs**: $3-16/month for light usage (10 queries/day)
+
+## 🛠️ Available Scripts
+
+### Deployment
+- `.\scripts\deploy.ps1` - Deploy CDK infrastructure
+- `.\scripts\create-bedrock-agent.ps1` - Create Bedrock Agent
+- `.\scripts\validate-deployment.ps1` - Validate deployment
+
+### Cost Management
+- `.\scripts\cleanup-environment.ps1` - **Delete all resources**
+- `.\scripts\estimate-costs.ps1` - View cost breakdown
+
+### Testing
+- `.\scripts\test-bedrock-agent.ps1` - Test agent functionality
+- `python integration-tests/simple_test_runner.py` - Run integration tests
+
+## 🤖 Example Queries
+
+### Cost Analysis
+- "What are my AWS costs this month?"
+- "Show me costs by service"
+- "Which resources are costing me the most?"
+- "Find idle EC2 instances"
+
+### Resource Discovery
+- "List all my EC2 instances"
+- "What S3 buckets do I have?"
+- "Show me resources in us-east-1"
+- "What Lambda functions are running?"
+
+### Security Assessment
+- "Are there any security issues?"
+- "Which resources are publicly accessible?"
+- "Check encryption status of my S3 buckets"
+- "Show me security group misconfigurations"
+
+## 📁 Project Structure
+
+```
+aws-ai-concierge/
+├── aws-ai-concierge-cdk/          # CDK infrastructure code
+│   ├── lib/                       # CDK stack definitions
+│   ├── scripts/                   # Deployment and management scripts
+│   └── config/                    # Environment configurations
+├── lambda-src/                    # Lambda function source code
+│   ├── tools/                     # AWS API integration tools
+│   ├── utils/                     # Utilities and helpers
+│   └── tests/                     # Unit tests
+├── openapi-spec/                  # OpenAPI specifications
+├── integration-tests/             # End-to-end tests
+├── monitoring/                    # CloudWatch dashboards
+└── docs/                         # Additional documentation
+```
+
+## 🔧 Configuration
+
+### Environment Settings
+
+Edit `aws-ai-concierge-cdk/config/environments.json`:
+
+```json
+{
+  "dev": {
+    "logRetentionDays": 7,
+    "lambdaMemorySize": 512,
+    "lambdaTimeout": 180,
+    "enableDetailedMonitoring": false
+  },
+  "prod": {
+    "logRetentionDays": 90,
+    "lambdaMemorySize": 1024,
+    "lambdaTimeout": 300,
+    "enableDetailedMonitoring": true
+  }
+}
+```
+
+### Supported Environments
+- `dev` - Development (lower costs, shorter retention)
+- `staging` - Staging environment
+- `prod` - Production (enhanced monitoring, longer retention)
+
+## 🧪 Testing
+
+### Unit Tests
+```bash
+cd lambda-src
+python -m pytest tests/ -v
+```
+
+### Integration Tests
+```bash
+cd integration-tests
+python run_integration_tests.py --environment dev
+```
+
+### Performance Tests
+```bash
+python performance_benchmark.py --environment dev
+```
+
+## 📊 Monitoring
+
+### CloudWatch Dashboards
+```bash
+cd monitoring
+python cloudwatch_dashboards.py --environment dev
+```
+
+### Key Metrics
+- Lambda execution duration and errors
+- API Gateway request count and latency
+- Bedrock token usage and costs
+- S3 storage utilization
+
+## 🔒 Security
+
+### IAM Permissions
+- **Read-only by default**: All AWS API calls use read-only permissions
+- **Principle of least privilege**: Minimal required permissions only
+- **No data persistence**: No user data stored beyond session context
+- **Audit logging**: Complete audit trail in CloudWatch
+
+### Compliance Features
+- Structured JSON logging for regulatory compliance
+- Request ID tracking for complete audit trails
+- Parameter sanitization for sensitive data protection
+- Regional compliance validation
+
+## 🚨 Important Notes
+
+### Before Committing to Git
+1. **Clean up AWS resources**: `.\scripts\cleanup-environment.ps1 -Environment dev`
+2. **Remove any sensitive data** from configuration files
+3. **Verify no hardcoded credentials** in the codebase
+
+### Production Considerations
+- Set up billing alerts in AWS Console
+- Configure CloudWatch alarms for error rates
+- Implement proper CI/CD pipelines
+- Use AWS Secrets Manager for sensitive configuration
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Run the test suite
+6. Clean up AWS resources after testing
+7. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Troubleshooting
+
+### Common Issues
+
+**Deployment fails with "CloudWatch Logs role ARN must be set"**
+- Solution: The CDK stack disables API Gateway logging to avoid this issue
+
+**Bedrock Agent creation fails with OpenAPI parsing error**
+- Solution: Use the function schema approach in `create-bedrock-agent.ps1`
+
+**High costs appearing**
+- Solution: Run `.\scripts\cleanup-environment.ps1 -Environment dev` immediately
+
+### Getting Help
+
+1. Check the [troubleshooting guide](docs/TROUBLESHOOTING.md)
+2. Review the [cost management guide](docs/COST_MANAGEMENT.md)
+3. Review CloudWatch logs for detailed error information
+4. Use the validation script: `.\scripts\validate-deployment.ps1`
+5. Check AWS service status at https://status.aws.amazon.com/
+
+## 🎯 Roadmap
+
+- [ ] Support for write operations (with confirmation prompts)
+- [ ] Multi-account support
+- [ ] Custom dashboard creation
+- [ ] Slack/Teams integration
+- [ ] Advanced cost forecasting
+- [ ] Automated remediation suggestions
+
+---
+
+**⚠️ Remember**: Always run `.\scripts\cleanup-environment.ps1` after testing to avoid unnecessary AWS charges!
