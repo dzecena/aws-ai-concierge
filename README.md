@@ -60,7 +60,14 @@ npm run build
 .\scripts\create-bedrock-agent.ps1 -Environment dev
 ```
 
-### 3. Test Your AI Concierge
+### 3. Fix Bedrock Permissions
+
+```powershell
+# Fix permissions to prevent 403 errors (use your actual Agent ID)
+.\scripts\fix-bedrock-permissions.ps1 -Environment dev -AgentId YOUR_AGENT_ID
+```
+
+### 4. Test Your AI Concierge
 
 **Option 1: AWS Console (Recommended)**
 1. Go to AWS Console → Amazon Bedrock → Agents

@@ -127,6 +127,30 @@ Environment: dev
 🎉 Bedrock Agent setup completed successfully!
 ```
 
+#### Fix Bedrock Agent Permissions
+After creating the agent, fix permissions to allow it to invoke Bedrock foundation models:
+
+```powershell
+.\scripts\fix-bedrock-permissions.ps1 -Environment dev -AgentId YOUR_AGENT_ID
+```
+
+**What this fixes:**
+- Adds `bedrock:InvokeModel` and `bedrock:InvokeModelWithResponseStream` permissions
+- Grants access to Claude 3 Haiku and Sonnet foundation models
+- Ensures proper Lambda function invoke permissions
+- Re-prepares the agent to pick up new permissions
+
+**Expected Output:**
+```
+🔧 Fixing Bedrock Agent Permissions
+✅ Lambda permission added
+✅ Bedrock role permissions updated
+✅ Agent preparation initiated
+✅ Agent is ready!
+```
+
+**Important:** This step is required to prevent 403 "Access denied when calling Bedrock" errors when testing the agent.
+
 ### Step 4: Validate Deployment
 
 #### Run Validation Script

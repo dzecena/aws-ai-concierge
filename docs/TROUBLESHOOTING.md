@@ -180,6 +180,25 @@ aws bedrock-agent get-agent --agent-id YOUR_AGENT_ID --query "agent.agentStatus"
 # Should return "PREPARED"
 ```
 
+#### Error: "Access denied when calling Bedrock" (403 Error)
+```
+"failureCode": 403, "failureReason": "Access denied when calling Bedrock"
+```
+
+**Solution**: Fix Bedrock Agent permissions:
+```powershell
+.\scripts\fix-bedrock-permissions.ps1 -Environment dev -AgentId YOUR_AGENT_ID
+```
+
+Or manually add permissions:
+```powershell
+# Add Lambda invoke permission
+aws lambda add-permission --function-name aws-ai-concierge-tools-dev --statement-id bedrock-agent-invoke --action lambda:InvokeFunction --principal bedrock.amazonaws.com --source-arn "arn:aws:bedrock:us-east-1:ACCOUNT:agent/AGENT_ID"
+
+# Prepare agent again
+aws bedrock-agent prepare-agent --agent-id YOUR_AGENT_ID
+```
+
 ## 💰 Cost-Related Issues
 
 ### Unexpected High Costs

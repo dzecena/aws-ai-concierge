@@ -28,6 +28,12 @@
 - **IAM Roles**: Principle of least privilege with read-only permissions
 - **S3 Security**: Block public access, server-side encryption
 - **Network Security**: CORS configuration, API Gateway policies
+
+### 5. Bedrock Agent Permission Management
+- **Foundation Model Access**: Automated permission setup for Claude 3 models
+- **Lambda Integration**: Proper invoke permissions for Bedrock Agent
+- **Permission Fix Script**: `fix-bedrock-permissions.ps1` resolves 403 errors
+- **Security Boundaries**: Source ARN restrictions for enhanced security
 - **Audit Logging**: Complete audit trail for compliance
 
 ### 5. Deployment Automation
