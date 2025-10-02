@@ -1,0 +1,155 @@
+openapi: 3.0.0
+info:
+  title: AWS AI Concierge Tools
+  version: 1.0.0
+  description: Tools for AWS resource management and monitoring
+
+paths:
+  /cost-analysis:
+    post:
+      summary: Analyze AWS costs and spending patterns
+      operationId: getCostAnalysis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                time_period:
+                  type: string
+                  enum: ["DAILY", "MONTHLY", "YEARLY"]
+                  description: Time period for cost analysis
+                granularity:
+                  type: string
+                  enum: ["DAILY", "MONTHLY"]
+                  description: Data point granularity
+                group_by:
+                  type: string
+                  enum: ["SERVICE", "REGION", "USAGE_TYPE"]
+                  description: How to group cost data
+              required: ["time_period"]
+      responses:
+        '200':
+          description: Cost analysis results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_cost:
+                    type: number
+                  currency:
+                    type: string
+                  breakdown:
+                    type: array
+                    items:
+                      type: object
+
+  /idle-resources:
+    post:
+      summary: Identify idle or underutilized resources
+      operationId: getIdleResources
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                region:
+                  type: string
+                  description: AWS region to analyze
+                cpu_threshold:
+                  type: number
+                  description: CPU utilization threshold percentage
+                days:
+                  type: integer
+                  description: Number of days to analyze
+              required: ["region"]
+      responses:
+        '200':
+          description: List of idle resources
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  idle_instances:
+                    type: array
+                    items:
+                      type: object
+                  potential_savings:
+                    type: number
+
+  /resource-inventory:
+    post:
+      summary: Get inventory of AWS resources
+      operationId: getResourceInventory
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                resource_type:
+                  type: string
+                  enum: ["EC2", "S3", "RDS", "LAMBDA", "ALL"]
+                  description: Type of resources to list
+                region:
+                  type: string
+                  description: AWS region to query
+              required: ["resource_type", "region"]
+      responses:
+        '200':
+          description: Resource inventory
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  resources:
+                    type: array
+                    items:
+                      type: object
+                  total_count:
+                    type: integer
+
+  /security-assessment:
+    post:
+      summary: Perform security assessment of AWS resources
+      operationId: getSecurityAssessment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                region:
+                  type: string
+                  description: AWS region to assess
+                assessment_type:
+                  type: string
+                  enum: ["BASIC", "COMPREHENSIVE"]
+                  description: Type of security assessment
+              required: ["region"]
+      responses:
+        '200':
+          description: Security assessment results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  findings:
+                    type: array
+                    items:
+                      type: object
+                  risk_score:
+                    type: integer
+                  recommendations:
+                    type: array
+                    items:
+                      type: string

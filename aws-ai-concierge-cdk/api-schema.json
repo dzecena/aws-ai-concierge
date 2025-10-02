@@ -1,0 +1,6 @@
+{
+  "s3": {
+    "s3BucketName": "aws-ai-concierge-openapi-dev-296158189643-us-east-1",
+    "s3ObjectKey": "aws-ai-concierge-minimal.yaml"
+  }
+}

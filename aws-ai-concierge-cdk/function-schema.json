@@ -1,0 +1,15 @@
+{
+  "functions": [
+    {
+      "name": "getCostAnalysis",
+      "description": "Analyze AWS costs and spending patterns",
+      "parameters": {
+        "time_period": {
+          "description": "Time period for cost analysis",
+          "required": true,
+          "type": "string"
+        }
+      }
+    }
+  ]
+}

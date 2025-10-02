@@ -142,10 +142,33 @@ if ($LASTEXITCODE -eq 0) {
         Write-Host ""
     }
     
+    # Upload OpenAPI specification
+    Write-Host "📤 Uploading OpenAPI specification..." -ForegroundColor $Yellow
+    $BucketName = "aws-ai-concierge-openapi-$Environment-$Account-$Region"
+    $OpenApiPath = "..\openapi-spec\aws-ai-concierge-tools-simple.yaml"
+    
+    if (Test-Path $OpenApiPath) {
+        try {
+            aws s3 cp $OpenApiPath "s3://$BucketName/aws-ai-concierge-tools-simple.yaml" --content-type "application/yaml"
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "✅ OpenAPI specification uploaded successfully" -ForegroundColor $Green
+            } else {
+                Write-Host "⚠️  Failed to upload OpenAPI specification" -ForegroundColor $Yellow
+                Write-Host "You can upload it manually using: .\scripts\upload-openapi.ps1" -ForegroundColor $Yellow
+            }
+        } catch {
+            Write-Host "⚠️  Failed to upload OpenAPI specification" -ForegroundColor $Yellow
+            Write-Host "You can upload it manually using: .\scripts\upload-openapi.ps1" -ForegroundColor $Yellow
+        }
+    } else {
+        Write-Host "⚠️  OpenAPI specification not found at: $OpenApiPath" -ForegroundColor $Yellow
+    }
+    
+    Write-Host ""
     Write-Host "💡 Next Steps:" -ForegroundColor $Yellow
-    Write-Host "  1. Upload OpenAPI specification to S3 bucket" -ForegroundColor $Yellow
-    Write-Host "  2. Test Lambda function endpoints" -ForegroundColor $Yellow
-    Write-Host "  3. Test Bedrock Agent integration" -ForegroundColor $Yellow
+    Write-Host "  1. Test Lambda function endpoints" -ForegroundColor $Yellow
+    Write-Host "  2. Test Bedrock Agent integration" -ForegroundColor $Yellow
+    Write-Host "  3. Run integration tests" -ForegroundColor $Yellow
     Write-Host "  4. Set up monitoring and alerting" -ForegroundColor $Yellow
     
 } else {

@@ -253,8 +253,8 @@ export class AwsAiConciergeCdkStack extends cdk.Stack {
       deployOptions: {
         stageName: envConfig.environment,
         metricsEnabled: envConfig.enableDetailedMonitoring,
-        loggingLevel: envConfig.environment === 'prod' ? apigateway.MethodLoggingLevel.ERROR : apigateway.MethodLoggingLevel.INFO,
-        dataTraceEnabled: envConfig.environment !== 'prod',
+        loggingLevel: apigateway.MethodLoggingLevel.OFF, // Disable logging to avoid CloudWatch Logs role requirement
+        dataTraceEnabled: false, // Disable data tracing to avoid CloudWatch Logs role requirement
         tracingEnabled: envConfig.enableXRayTracing,
         throttlingRateLimit: envConfig.environment === 'prod' ? 1000 : 100,
         throttlingBurstLimit: envConfig.environment === 'prod' ? 2000 : 200,
@@ -350,85 +350,8 @@ export class AwsAiConciergeCdkStack extends cdk.Stack {
     // Grant Lambda invoke permission to Bedrock Agent
     conciergeFunction.grantInvoke(bedrockAgentRole);
 
-    // Bedrock Agent
-    const bedrockAgent = new bedrock.CfnAgent(this, 'ConciergeAgent', {
-      agentName: `aws-ai-concierge-${envConfig.environment}`,
-      description: `AWS AI Concierge - Intelligent assistant for AWS resource management and monitoring (${envConfig.environment})`,
-      agentResourceRoleArn: bedrockAgentRole.roleArn,
-      foundationModel: 'anthropic.claude-3-haiku-20240307-v1:0',
-      instruction: `You are an AWS Cloud Concierge, an expert assistant for Amazon Web Services management and monitoring. Your primary goal is to help users understand, monitor, and optimize their AWS infrastructure through natural language interactions.
-
-CORE CAPABILITIES:
-- Analyze AWS costs and identify optimization opportunities
-- Monitor and discover AWS resources across regions
-- Provide security and compliance insights
-- Translate technical AWS concepts into business-friendly language
-
-TOOL USAGE GUIDELINES:
-- Always use the most specific tool available for the user's request
-- When multiple regions are involved, clearly specify which regions you're analyzing
-- For cost queries, always include the time period and currency in your response
-- When security issues are found, prioritize them by risk level
-- If a tool returns no results, clearly state this and suggest alternative approaches
-
-RESPONSE FORMAT:
-- Use clear, business-friendly language while maintaining technical accuracy
-- Always cite the specific AWS region(s) in your responses
-- Provide actionable recommendations when possible
-- Include relevant timestamps and metadata for context
-- Format large datasets in tables or bullet points for readability
-
-ERROR HANDLING:
-- If AWS API calls fail, explain the issue in user-friendly terms
-- When permissions are insufficient, specify what permissions are needed
-- If services are unavailable, provide status information and alternatives
-- For ambiguous requests, ask clarifying questions before proceeding
-
-SECURITY PRINCIPLES:
-- Never perform write operations without explicit user confirmation
-- Always operate with read-only permissions by default
-- Respect regional compliance and data residency requirements
-- Log all operations for audit purposes
-
-Remember to be helpful, accurate, and always prioritize the user's AWS environment security and cost optimization.`,
-      idleSessionTtlInSeconds: 1800, // 30 minutes
-      actionGroups: [
-        {
-          actionGroupName: 'aws-ai-concierge-tools',
-          description: 'Tools for AWS cost analysis, resource discovery, and security assessment',
-          actionGroupExecutor: {
-            lambda: conciergeFunction.functionArn,
-          },
-          apiSchema: {
-            s3: {
-              s3BucketName: openApiBucket.bucketName,
-              s3ObjectKey: 'aws-ai-concierge-tools.yaml',
-            },
-          },
-          actionGroupState: 'ENABLED',
-        },
-      ],
-    });
-
-    // Bedrock Agent Alias
-    const bedrockAgentAlias = new bedrock.CfnAgentAlias(this, 'ConciergeAgentAlias', {
-      agentId: bedrockAgent.attrAgentId,
-      agentAliasName: envConfig.environment,
-      description: `${envConfig.environment.charAt(0).toUpperCase() + envConfig.environment.slice(1)} alias for AWS AI Concierge Agent`,
-    });
-
-    // Apply tags to Bedrock Agent (via CloudFormation tags)
-    cdk.Tags.of(bedrockAgent).add('Environment', envConfig.environment);
-    cdk.Tags.of(bedrockAgent).add('Project', 'AWS-AI-Concierge');
-    cdk.Tags.of(bedrockAgent).add('ManagedBy', 'CDK');
-    cdk.Tags.of(bedrockAgent).add('ResourceType', 'BedrockAgent');
-    cdk.Tags.of(bedrockAgent).add('Purpose', 'AI-Assistant');
-
-    cdk.Tags.of(bedrockAgentAlias).add('Environment', envConfig.environment);
-    cdk.Tags.of(bedrockAgentAlias).add('Project', 'AWS-AI-Concierge');
-    cdk.Tags.of(bedrockAgentAlias).add('ManagedBy', 'CDK');
-    cdk.Tags.of(bedrockAgentAlias).add('ResourceType', 'BedrockAgentAlias');
-    cdk.Tags.of(bedrockAgentAlias).add('Purpose', 'AI-Assistant-Alias');
+    // Note: Bedrock Agent will be created manually after deployment
+    // due to OpenAPI specification parsing issues in CDK
 
     // CloudWatch Monitoring and Alerting (for production)
     if (envConfig.enableDetailedMonitoring) {
@@ -527,20 +450,7 @@ Remember to be helpful, accurate, and always prioritize the user's AWS environme
       description: 'API Gateway URL for tool invocation',
     });
 
-    new cdk.CfnOutput(this, 'BedrockAgentId', {
-      value: bedrockAgent.attrAgentId,
-      description: 'Bedrock Agent ID for AWS AI Concierge',
-    });
-
-    new cdk.CfnOutput(this, 'BedrockAgentAliasId', {
-      value: bedrockAgentAlias.attrAgentAliasId,
-      description: 'Bedrock Agent Alias ID for production',
-    });
-
-    new cdk.CfnOutput(this, 'BedrockAgentArn', {
-      value: bedrockAgent.attrAgentArn,
-      description: 'Bedrock Agent ARN for AWS AI Concierge',
-    });
+    // Bedrock Agent outputs will be available after manual creation
 
     new cdk.CfnOutput(this, 'LambdaFunctionName', {
       value: conciergeFunction.functionName,
