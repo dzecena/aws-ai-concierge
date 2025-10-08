@@ -41,7 +41,25 @@ Amazon Bedrock Agent (Claude 3 Haiku) → OpenAPI Tools → Formatted Response
 - AWS CDK CLI (`npm install -g aws-cdk`)
 - PowerShell (for Windows) or Bash (for Linux/macOS)
 
-### 1. Deploy Infrastructure
+### 1. Enable Bedrock Model Access (REQUIRED)
+
+**⚠️ CRITICAL STEP: This must be done in the AWS Console before deployment**
+
+To use Bedrock serverless models, account users with the correct IAM permissions must enable access to available Bedrock foundation models (FMs).
+
+**Steps:**
+1. **Go to AWS Console → Amazon Bedrock → Model access**
+2. **Click "Request model access"**
+3. **Find "Claude 3 Haiku" and click "Request access"**
+4. **Wait for approval (usually instant for Claude 3 Haiku)**
+5. **Verify status shows "Access granted"**
+
+**What is Model Access?**
+Model access is a security feature that requires explicit enablement of foundation models before they can be used in your AWS account. This prevents unauthorized usage and helps with cost control.
+
+**Note:** View all [Bedrock Model Terms](https://docs.aws.amazon.com/bedrock/latest/userguide/model-license.html) and [Amazon Bedrock Quotas](https://docs.aws.amazon.com/bedrock/latest/userguide/quotas.html) for limits and terms.
+
+### 2. Deploy Infrastructure
 
 ```powershell
 # Navigate to CDK directory
@@ -53,21 +71,21 @@ npm run build
 .\scripts\deploy.ps1 -Environment dev
 ```
 
-### 2. Create Bedrock Agent
+### 3. Create Bedrock Agent
 
 ```powershell
 # Create the AI agent
 .\scripts\create-bedrock-agent.ps1 -Environment dev
 ```
 
-### 3. Fix Bedrock Permissions
+### 4. Fix Bedrock Permissions
 
 ```powershell
 # Fix permissions to prevent 403 errors (use your actual Agent ID)
 .\scripts\fix-bedrock-permissions.ps1 -Environment dev -AgentId YOUR_AGENT_ID
 ```
 
-### 4. Test Your AI Concierge
+### 5. Test Your AI Concierge
 
 **Option 1: AWS Console (Recommended)**
 1. Go to AWS Console → Amazon Bedrock → Agents
@@ -82,6 +100,28 @@ npm run build
 cd integration-tests
 python simple_test_runner.py --environment dev
 ```
+
+## 🚨 Common Issues
+
+### 403 "Access denied when calling Bedrock" Error
+
+**Cause:** Claude 3 Haiku model access not enabled in your AWS account.
+
+**Solution:**
+1. Go to **AWS Console → Amazon Bedrock → Model access**
+2. Ensure **Claude 3 Haiku** shows "Access granted"
+3. If not, click "Request model access" and enable it
+4. Re-run the permission fix script: `.\scripts\fix-bedrock-permissions.ps1 -Environment dev -AgentId YOUR_AGENT_ID`
+5. Wait 2-3 minutes for permissions to propagate
+
+### Agent Not Responding
+
+**Cause:** Agent not properly prepared or permissions missing.
+
+**Solution:**
+1. Check agent status: `aws bedrock-agent get-agent --agent-id YOUR_AGENT_ID --query agent.agentStatus`
+2. Should return "PREPARED"
+3. If not, run: `aws bedrock-agent prepare-agent --agent-id YOUR_AGENT_ID`
 
 ## 💰 Cost Management
 

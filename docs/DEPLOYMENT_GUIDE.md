@@ -18,6 +18,17 @@ node --version  # Should be 18+
 cdk --version
 ```
 
+### ⚠️ CRITICAL: Enable Bedrock Model Access
+**This step must be completed BEFORE deployment in the AWS Console:**
+
+1. **Go to AWS Console → Amazon Bedrock → Model access**
+2. **Click "Request model access"**
+3. **Find "Claude 3 Haiku" and request access**
+4. **Wait for approval (usually instant)**
+5. **Verify status shows "Access granted"**
+
+**Why this is required:** Bedrock foundation models require explicit access enablement for security and cost control. Without this, you'll get 403 "Access denied when calling Bedrock" errors.
+
 ### One-Command Deploy
 ```powershell
 cd aws-ai-concierge-cdk

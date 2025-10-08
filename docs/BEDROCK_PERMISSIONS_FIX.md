@@ -13,9 +13,22 @@ When testing the Bedrock Agent in the AWS Console, users encounter a 403 "Access
 
 ## 🔍 Root Cause
 
-The Bedrock Agent's execution role lacks the necessary permissions to:
-1. Invoke Bedrock foundation models (Claude 3 Haiku/Sonnet)
-2. Call the Lambda functions with proper authorization
+The most common causes of this error are:
+1. **Model Access Not Enabled**: Claude 3 Haiku model access not granted in AWS Console (most common)
+2. **Missing Role Permissions**: Bedrock Agent's execution role lacks permissions to invoke foundation models
+3. **Lambda Permissions**: Missing permissions to call Lambda functions
+
+## ⚠️ PREREQUISITE: Enable Model Access
+
+**BEFORE running any scripts, you MUST enable Claude 3 Haiku access:**
+
+1. **Go to AWS Console → Amazon Bedrock → Model access**
+2. **Click "Request model access"**
+3. **Find "Claude 3 Haiku" and request access**
+4. **Wait for approval (usually instant)**
+5. **Verify status shows "Access granted"**
+
+**What is Model Access?** To use Bedrock serverless models, account users with correct IAM permissions must enable access to available Bedrock foundation models (FMs). This is a security feature that prevents unauthorized usage and helps with cost control.
 
 ## ✅ Solution
 

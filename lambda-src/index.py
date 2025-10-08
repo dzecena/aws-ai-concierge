@@ -82,8 +82,12 @@ def handler(event: Dict[str, Any], context) -> Dict[str, Any]:
                 
             logger.info(f"[{request_id}] Bedrock Agent - Action: {action}, API Path: {api_path}, Method: {http_method}")
             
-            # Determine the operation based on API path
-            operation = _extract_operation_from_path(api_path)
+            # Determine the operation - for Bedrock Agent, use the function name directly
+            if 'function' in event and event['function']:
+                operation = event['function']
+            else:
+                # Fallback to API path extraction for API Gateway calls
+                operation = _extract_operation_from_path(api_path)
             
             # Log request received
             audit_logger.log_request_received(
