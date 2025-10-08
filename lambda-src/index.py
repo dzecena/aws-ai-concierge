@@ -62,6 +62,15 @@ def handler(event: Dict[str, Any], context) -> Dict[str, Any]:
     
     logger.info(f"[{request_id}] Processing request: {json.dumps(event, default=str)}")
     
+    # DEBUG: Log the exact event structure for Bedrock Agent debugging
+    if 'actionGroup' in event:
+        logger.info(f"[{request_id}] DEBUG - Bedrock Agent Event Structure:")
+        logger.info(f"[{request_id}] DEBUG - actionGroup: {event.get('actionGroup')}")
+        logger.info(f"[{request_id}] DEBUG - apiPath: {event.get('apiPath')}")
+        logger.info(f"[{request_id}] DEBUG - httpMethod: {event.get('httpMethod')}")
+        logger.info(f"[{request_id}] DEBUG - function: {event.get('function')}")
+        logger.info(f"[{request_id}] DEBUG - parameters: {event.get('parameters')}")
+    
     try:
         # Detect event source (Bedrock Agent vs API Gateway)
         if 'actionGroup' in event:
@@ -280,7 +289,12 @@ def handler(event: Dict[str, Any], context) -> Dict[str, Any]:
             
             return response
         else:
-            response = response_formatter.format_error_response(error_response, request_id, locals().get('api_path', ''))
+            response = response_formatter.format_error_response(
+                error_response, 
+                request_id, 
+                locals().get('api_path', ''),
+                locals().get('operation')
+            )
             
             # Log error response
             response_size = len(json.dumps(response, default=str).encode('utf-8'))

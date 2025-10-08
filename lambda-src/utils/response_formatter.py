@@ -21,15 +21,19 @@ class ResponseFormatter:
             data: The response data from the tool
             operation: The operation that was performed
             request_id: Request ID for tracking
+            api_path: The API path from the request (if any)
             
         Returns:
             Formatted response dictionary
         """
         response_data = {
             'actionGroup': 'aws-ai-concierge-tools',
-            'httpMethod': 'POST',
-            'apiPath': api_path if api_path is not None else ""
+            'httpMethod': 'POST'
         }
+        
+        # Only include apiPath if it was provided in the request
+        if api_path is not None and api_path != "":
+            response_data['apiPath'] = api_path
         
         response_data.update({
             'httpStatusCode': 200,
@@ -57,7 +61,7 @@ class ResponseFormatter:
         logger.debug(f"[{request_id}] Formatted success response for {operation}")
         return response
     
-    def format_error_response(self, error_info: Dict[str, Any], request_id: str, api_path: str = None) -> Dict[str, Any]:
+    def format_error_response(self, error_info: Dict[str, Any], request_id: str, api_path: str = None, operation: str = None) -> Dict[str, Any]:
         """
         Format an error response for Bedrock Agent.
         
@@ -72,9 +76,12 @@ class ResponseFormatter:
         
         response_data = {
             'actionGroup': 'aws-ai-concierge-tools',
-            'httpMethod': 'POST',
-            'apiPath': api_path if api_path is not None else ""
+            'httpMethod': 'POST'
         }
+        
+        # Only include apiPath if it was provided in the request
+        if api_path is not None and api_path != "":
+            response_data['apiPath'] = api_path
         
         response_data.update({
             'httpStatusCode': http_status,

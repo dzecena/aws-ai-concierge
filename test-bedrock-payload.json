@@ -1,0 +1,13 @@
+{
+  "messageVersion": "1.0",
+  "agent": {
+    "name": "aws-ai-concierge-dev",
+    "version": "DRAFT",
+    "id": "test-agent-id"
+  },
+  "inputText": "What are my AWS costs?",
+  "sessionId": "test-session-123",
+  "actionGroup": "aws-ai-concierge-tools",
+  "function": "getCostAnalysis",
+  "parameters": []
+}
