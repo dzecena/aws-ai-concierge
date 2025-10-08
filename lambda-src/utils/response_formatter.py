@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class ResponseFormatter:
     """Formats responses for Bedrock Agent consumption."""
     
-    def format_success_response(self, data: Dict[str, Any], operation: str, request_id: str) -> Dict[str, Any]:
+    def format_success_response(self, data: Dict[str, Any], operation: str, request_id: str, api_path: str = None) -> Dict[str, Any]:
         """
         Format a successful response for Bedrock Agent.
         
@@ -25,34 +25,39 @@ class ResponseFormatter:
         Returns:
             Formatted response dictionary
         """
-        response = {
-            'messageVersion': '1.0',
-            'response': {
-                'actionGroup': 'aws-ai-concierge-tools',
-                'apiPath': self._get_api_path_for_operation(operation),
-                'httpMethod': 'POST',
-                'httpStatusCode': 200,
-                'responseBody': {
-                    'application/json': {
-                        'body': json.dumps({
-                            'success': True,
-                            'operation': operation,
-                            'data': data,
-                            'metadata': {
-                                'request_id': request_id,
-                                'timestamp': datetime.utcnow().isoformat(),
-                                'version': '1.0'
-                            }
-                        })
-                    }
+        response_data = {
+            'actionGroup': 'aws-ai-concierge-tools',
+            'httpMethod': 'POST',
+            'apiPath': api_path if api_path is not None else ""
+        }
+        
+        response_data.update({
+            'httpStatusCode': 200,
+            'responseBody': {
+                'application/json': {
+                    'body': json.dumps({
+                        'success': True,
+                        'operation': operation,
+                        'data': data,
+                        'metadata': {
+                            'request_id': request_id,
+                            'timestamp': datetime.utcnow().isoformat(),
+                            'version': '1.0'
+                        }
+                    })
                 }
             }
+        })
+        
+        response = {
+            'messageVersion': '1.0',
+            'response': response_data
         }
         
         logger.debug(f"[{request_id}] Formatted success response for {operation}")
         return response
     
-    def format_error_response(self, error_info: Dict[str, Any], request_id: str) -> Dict[str, Any]:
+    def format_error_response(self, error_info: Dict[str, Any], request_id: str, api_path: str = None) -> Dict[str, Any]:
         """
         Format an error response for Bedrock Agent.
         
@@ -65,34 +70,39 @@ class ResponseFormatter:
         """
         http_status = self._get_http_status_for_error(error_info)
         
-        response = {
-            'messageVersion': '1.0',
-            'response': {
-                'actionGroup': 'aws-ai-concierge-tools',
-                'apiPath': '/error',
-                'httpMethod': 'POST',
-                'httpStatusCode': http_status,
-                'responseBody': {
-                    'application/json': {
-                        'body': json.dumps({
-                            'success': False,
-                            'error': {
-                                'message': error_info.get('user_message', 'An error occurred'),
-                                'type': error_info.get('error_type', 'Unknown'),
-                                'severity': error_info.get('severity', 'error'),
-                                'retry_suggested': error_info.get('retry_suggested', False),
-                                'retry_delay_seconds': error_info.get('retry_delay_seconds'),
-                                'action_required': error_info.get('action_required')
-                            },
-                            'metadata': {
-                                'request_id': request_id,
-                                'timestamp': datetime.utcnow().isoformat(),
-                                'version': '1.0'
-                            }
-                        })
-                    }
+        response_data = {
+            'actionGroup': 'aws-ai-concierge-tools',
+            'httpMethod': 'POST',
+            'apiPath': api_path if api_path is not None else ""
+        }
+        
+        response_data.update({
+            'httpStatusCode': http_status,
+            'responseBody': {
+                'application/json': {
+                    'body': json.dumps({
+                        'success': False,
+                        'error': {
+                            'message': error_info.get('user_message', 'An error occurred'),
+                            'type': error_info.get('error_type', 'Unknown'),
+                            'severity': error_info.get('severity', 'error'),
+                            'retry_suggested': error_info.get('retry_suggested', False),
+                            'retry_delay_seconds': error_info.get('retry_delay_seconds'),
+                            'action_required': error_info.get('action_required')
+                        },
+                        'metadata': {
+                            'request_id': request_id,
+                            'timestamp': datetime.utcnow().isoformat(),
+                            'version': '1.0'
+                        }
+                    })
                 }
             }
+        })
+        
+        response = {
+            'messageVersion': '1.0',
+            'response': response_data
         }
         
         logger.debug(f"[{request_id}] Formatted error response: {error_info.get('user_message')}")

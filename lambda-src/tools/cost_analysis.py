@@ -14,6 +14,40 @@ logger = logging.getLogger(__name__)
 class CostAnalysisHandler:
     """Handles cost analysis and optimization recommendations."""
     
+    @staticmethod
+    def _normalize_time_period(time_period: str) -> str:
+        """
+        Normalize natural language time periods to expected format.
+        
+        Args:
+            time_period: Natural language time period
+            
+        Returns:
+            Normalized time period (DAILY, MONTHLY, YEARLY)
+        """
+        time_period_lower = time_period.lower().strip()
+        
+        # Daily patterns
+        if any(word in time_period_lower for word in ['today', 'daily', 'day', 'yesterday']):
+            return 'DAILY'
+        
+        # Monthly patterns  
+        if any(word in time_period_lower for word in [
+            'month', 'monthly', 'this month', 'current month', 
+            'last month', 'past month', '30 days', 'last 30 days'
+        ]):
+            return 'MONTHLY'
+        
+        # Yearly patterns
+        if any(word in time_period_lower for word in [
+            'year', 'yearly', 'annual', 'this year', 'current year',
+            'last year', 'past year', '12 months', 'last 12 months'
+        ]):
+            return 'YEARLY'
+        
+        # Default to original if no match (will be validated later)
+        return time_period.upper()
+    
     def __init__(self, aws_clients):
         self.aws_clients = aws_clients
         self.audit_logger = AuditLogger()
@@ -36,6 +70,9 @@ class CostAnalysisHandler:
             time_period = params.get('time_period', 'MONTHLY')
             granularity = params.get('granularity', 'DAILY')
             group_by = params.get('group_by', 'SERVICE')
+            
+            # Normalize natural language time periods
+            time_period = self._normalize_time_period(time_period)
             
             # Validate parameters
             valid_time_periods = ['DAILY', 'MONTHLY', 'YEARLY']

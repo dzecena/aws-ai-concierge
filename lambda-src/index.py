@@ -67,7 +67,7 @@ def handler(event: Dict[str, Any], context) -> Dict[str, Any]:
         if 'actionGroup' in event:
             # Bedrock Agent event
             action = event.get('actionGroup', '')
-            api_path = event.get('apiPath', '')
+            api_path = event.get('apiPath') if 'apiPath' in event else None
             http_method = event.get('httpMethod', 'POST')
             parameters = event.get('parameters', [])
             
@@ -120,7 +120,8 @@ def handler(event: Dict[str, Any], context) -> Dict[str, Any]:
             response = response_formatter.format_success_response(
                 result, 
                 operation, 
-                request_id
+                request_id,
+                api_path  # Pass the original API path from the request
             )
             
         elif 'httpMethod' in event or 'requestContext' in event:
@@ -279,7 +280,7 @@ def handler(event: Dict[str, Any], context) -> Dict[str, Any]:
             
             return response
         else:
-            response = response_formatter.format_error_response(error_response, request_id)
+            response = response_formatter.format_error_response(error_response, request_id, locals().get('api_path', ''))
             
             # Log error response
             response_size = len(json.dumps(response, default=str).encode('utf-8'))
