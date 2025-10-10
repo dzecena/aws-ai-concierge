@@ -26,16 +26,14 @@ class ResponseFormatter:
         Returns:
             Formatted response dictionary
         """
+        # CRITICAL: apiPath must ALWAYS be present and match the request
+        if api_path is None:
+            raise ValueError(f"api_path is required for Bedrock Agent response. Operation: {operation}")
+        
         response_data = {
             'actionGroup': 'aws-ai-concierge-tools',
-            'httpMethod': 'POST'
-        }
-        
-        # Only include apiPath if it was provided in the request
-        if api_path is not None and api_path != "":
-            response_data['apiPath'] = api_path
-        
-        response_data.update({
+            'apiPath': api_path,  # MUST be present and match request
+            'httpMethod': 'POST',
             'httpStatusCode': 200,
             'responseBody': {
                 'application/json': {
@@ -51,14 +49,14 @@ class ResponseFormatter:
                     })
                 }
             }
-        })
+        }
         
         response = {
             'messageVersion': '1.0',
             'response': response_data
         }
         
-        logger.debug(f"[{request_id}] Formatted success response for {operation}")
+        logger.debug(f"[{request_id}] Formatted success response for {operation} with apiPath: {api_path}")
         return response
     
     def format_error_response(self, error_info: Dict[str, Any], request_id: str, api_path: str = None, operation: str = None) -> Dict[str, Any]:
@@ -74,16 +72,16 @@ class ResponseFormatter:
         """
         http_status = self._get_http_status_for_error(error_info)
         
+        # CRITICAL: apiPath must ALWAYS be present
+        if api_path is None:
+            logger.error(f"[{request_id}] Missing api_path in error response")
+            # Use empty string as fallback, but this indicates a bug
+            api_path = ""
+        
         response_data = {
             'actionGroup': 'aws-ai-concierge-tools',
-            'httpMethod': 'POST'
-        }
-        
-        # Only include apiPath if it was provided in the request
-        if api_path is not None and api_path != "":
-            response_data['apiPath'] = api_path
-        
-        response_data.update({
+            'apiPath': api_path,  # MUST be present
+            'httpMethod': 'POST',
             'httpStatusCode': http_status,
             'responseBody': {
                 'application/json': {
@@ -105,7 +103,7 @@ class ResponseFormatter:
                     })
                 }
             }
-        })
+        }
         
         response = {
             'messageVersion': '1.0',
@@ -138,13 +136,13 @@ class ResponseFormatter:
     def _get_api_path_for_operation(self, operation: str) -> str:
         """Map operation names to API paths."""
         path_mapping = {
-            'getCostAnalysis': '/cost-analysis',
-            'getIdleResources': '/idle-resources',
-            'getResourceInventory': '/resource-inventory',
-            'getResourceDetails': '/resource-details',
-            'getResourceHealth': '/resource-health',
-            'getSecurityAssessment': '/security-assessment',
-            'checkEncryptionStatus': '/encryption-status',
+            'getCostAnalysis': '/getCostAnalysis',
+            'getIdleResources': '/getIdleResources',
+            'getResourceInventory': '/getResourceInventory',
+            'getResourceDetails': '/getResourceDetails',
+            'getResourceHealth': '/getResourceHealth',
+            'getSecurityAssessment': '/getSecurityAssessment',
+            'checkEncryptionStatus': '/checkEncryptionStatus',
         }
         return path_mapping.get(operation, f'/{operation}')
     

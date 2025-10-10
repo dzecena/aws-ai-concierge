@@ -11,7 +11,7 @@ servers:
     description: AWS API Gateway endpoint
 
 paths:
-  /cost-analysis:
+  /getCostAnalysis:
     post:
       summary: Analyze AWS costs and spending patterns
       description: |

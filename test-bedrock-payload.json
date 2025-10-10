@@ -8,6 +8,13 @@
   "inputText": "What are my AWS costs?",
   "sessionId": "test-session-123",
   "actionGroup": "aws-ai-concierge-tools",
+  "apiPath": "/getCostAnalysis",
+  "httpMethod": "POST",
   "function": "getCostAnalysis",
-  "parameters": []
+  "parameters": [
+    {
+      "name": "time_period",
+      "value": "last_month"
+    }
+  ]
 }
