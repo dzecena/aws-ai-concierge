@@ -4,7 +4,7 @@
 
 The AWS AI Concierge is an intelligent AI assistant designed to simplify AWS cloud management through natural language interactions. The system addresses the complexity of managing AWS resources by providing a conversational interface that translates human language into actionable AWS API calls. This eliminates the need for deep knowledge of the AWS Management Console, CLI commands, or SDKs, making cloud operations accessible to users with varying technical expertise.
 
-The concierge leverages Large Language Models (LLMs) via Amazon Bedrock to understand user intent and execute appropriate AWS operations through a serverless Lambda-based architecture. The initial focus is on read-only operations for monitoring, cost analysis, and resource discovery, with future expansion to include write operations and complex workflows.
+The concierge leverages Amazon Nova Pro via Amazon Bedrock Agent Core to understand user intent and execute appropriate AWS operations through a serverless Lambda-based architecture. This implementation meets competition requirements by utilizing Amazon Nova (AWS's latest foundation model), Bedrock Agent primitives, and AWS SDK integrations. The initial focus is on read-only operations for monitoring, cost analysis, and resource discovery, with future expansion to include write operations and complex workflows.
 
 ## Requirements
 
@@ -92,7 +92,19 @@ The concierge leverages Large Language Models (LLMs) via Amazon Bedrock to under
 4. IF a service is unavailable THEN the system SHALL provide status information and alternative options
 5. WHEN users make invalid requests THEN the system SHALL provide examples of correct usage
 
-### Requirement 8: Integration and Extensibility
+### Requirement 8: Competition Compliance and AWS AI Services
+
+**User Story:** As a competition participant, I want the system to utilize required AWS AI services and demonstrate advanced capabilities, so that it meets all competition criteria and showcases AWS AI innovation.
+
+#### Acceptance Criteria
+
+1. WHEN the system processes queries THEN it SHALL use Amazon Nova Pro as the primary foundation model
+2. WHEN implementing AI capabilities THEN the system SHALL utilize Amazon Bedrock Agent Core primitives
+3. WHEN integrating with AWS services THEN the system SHALL use AWS SDKs for Agents and standard AWS APIs
+4. IF demonstrating AI transformation THEN the system SHALL showcase natural language to AWS API translation
+5. WHEN operating the system THEN it SHALL demonstrate at least one Bedrock Agent Core primitive in action
+
+### Requirement 9: Integration and Extensibility
 
 **User Story:** As a developer, I want the AI concierge to integrate with existing tools and be extensible for future capabilities, so that it can grow with our organizational needs.
 

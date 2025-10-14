@@ -323,7 +323,7 @@ export class AwsAiConciergeCdkStack extends cdk.Stack {
               actions: ['s3:GetObject'],
               resources: [`${openApiBucket.bucketArn}/*`],
             }),
-            // Allow Bedrock Agent to use foundation models
+            // Allow Bedrock Agent to use Amazon Nova foundation models
             new iam.PolicyStatement({
               effect: iam.Effect.ALLOW,
               actions: [
@@ -331,8 +331,9 @@ export class AwsAiConciergeCdkStack extends cdk.Stack {
                 'bedrock:InvokeModelWithResponseStream',
               ],
               resources: [
-                `arn:aws:bedrock:${this.region}::foundation-model/anthropic.claude-3-haiku-20240307-v1:0`,
-                `arn:aws:bedrock:${this.region}::foundation-model/anthropic.claude-3-sonnet-20240229-v1:0`,
+                `arn:aws:bedrock:${this.region}::foundation-model/amazon.nova-pro-v1:0`,
+                `arn:aws:bedrock:${this.region}::foundation-model/amazon.nova-lite-v1:0`,
+                `arn:aws:bedrock:${this.region}::foundation-model/amazon.nova-micro-v1:0`,
               ],
             }),
           ],
