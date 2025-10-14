@@ -1,0 +1,102 @@
+# Node.js dependencies (all projects)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build outputs
+dist/
+build/
+cdk.out/
+.vite/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# AWS CDK
+.cdk.staging
+cdk.context.json
+cdk-outputs*.json
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# AWS credentials (never commit)
+.aws/
+aws-credentials.json
+*.pem
+*.key
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+
+# Coverage reports
+coverage/
+*.lcov
+.nyc_output
+
+# Cache directories
+.npm
+.eslintcache
+.cache
+.parcel-cache
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Optional npm cache directory
+.npm
+
+# Yarn Integrity file
+.yarn-integrity
+
+# Test outputs
+test-results/
+junit.xml
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Local development
+.local/
+local-config.json

@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# CDK asset staging directory
+.cdk.staging
+cdk.out/
+cdk.context.json
+
+# Build outputs
+*.js
+*.d.ts
+!jest.config.js
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs
+*.log
+
+# AWS credentials (should never be committed)
+.aws/
+aws-credentials.json
+
+# CDK deployment outputs (may contain sensitive info)
+cdk-outputs*.json
+
+# Temporary files
+tmp/
+temp/
+*.tmp
