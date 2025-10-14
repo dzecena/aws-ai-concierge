@@ -31,13 +31,13 @@ param(
 # Set error action preference
 $ErrorActionPreference = "Stop"
 
-Write-Host "🚀 Public Demo Interface CDK Deployment" -ForegroundColor Green
+Write-Host "Public Demo Interface CDK Deployment" -ForegroundColor Green
 Write-Host "Environment: $Environment" -ForegroundColor Yellow
 Write-Host "Region: $Region" -ForegroundColor Yellow
 
 try {
     # Check if AWS CLI is configured
-    Write-Host "✅ Checking AWS CLI configuration..." -ForegroundColor Blue
+    Write-Host "Checking AWS CLI configuration..." -ForegroundColor Blue
     $awsIdentity = aws sts get-caller-identity --output json | ConvertFrom-Json
     if (-not $awsIdentity) {
         throw "AWS CLI not configured. Please run 'aws configure' first."
@@ -106,6 +106,6 @@ try {
 
 }
 catch {
-    Write-Host "❌ Deployment failed: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "ERROR: Deployment failed: $($_.Exception.Message)" -ForegroundColor Red
     exit 1
 }

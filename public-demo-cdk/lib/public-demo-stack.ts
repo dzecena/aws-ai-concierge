@@ -46,7 +46,6 @@ export class PublicDemoStack extends cdk.Stack {
         tempPasswordValidity: cdk.Duration.days(7),
       },
       mfa: config.cognitoMfaRequired ? cognito.Mfa.REQUIRED : cognito.Mfa.OPTIONAL,
-      accountRecovery: cognito.AccountRecovery.ADMIN_ONLY,
       removalPolicy: config.removalPolicy,
     });
 
@@ -151,7 +150,7 @@ export class PublicDemoStack extends cdk.Stack {
     const sessionsTable = new dynamodb.Table(this, 'SessionsTable', {
       tableName: `demo-sessions-${environment}`,
       partitionKey: { name: 'sessionId', type: dynamodb.AttributeType.STRING },
-      billingMode: dynamodb.BillingMode.ON_DEMAND,
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: config.removalPolicy,
       pointInTimeRecovery: environment === 'prod',
     });
@@ -166,7 +165,7 @@ export class PublicDemoStack extends cdk.Stack {
       tableName: `demo-conversations-${environment}`,
       partitionKey: { name: 'sessionId', type: dynamodb.AttributeType.STRING },
       sortKey: { name: 'messageId', type: dynamodb.AttributeType.STRING },
-      billingMode: dynamodb.BillingMode.ON_DEMAND,
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       removalPolicy: config.removalPolicy,
       pointInTimeRecovery: environment === 'prod',
     });

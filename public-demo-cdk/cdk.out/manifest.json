@@ -1,0 +1,235 @@
+{
+  "version": "34.0.0",
+  "artifacts": {
+    "PublicDemo-dev.assets": {
+      "type": "cdk:asset-manifest",
+      "properties": {
+        "file": "PublicDemo-dev.assets.json",
+        "requiresBootstrapStackVersion": 6,
+        "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version"
+      }
+    },
+    "PublicDemo-dev": {
+      "type": "aws:cloudformation:stack",
+      "environment": "aws://296158189643/us-east-1",
+      "properties": {
+        "templateFile": "PublicDemo-dev.template.json",
+        "terminationProtection": false,
+        "tags": {
+          "CostCenter": "Demo",
+          "Environment": "dev",
+          "ManagedBy": "CDK",
+          "Owner": "AI-Concierge-Team",
+          "Project": "AWS-AI-Concierge-Demo"
+        },
+        "validateOnSynth": false,
+        "assumeRoleArn": "arn:${AWS::Partition}:iam::296158189643:role/cdk-hnb659fds-deploy-role-296158189643-us-east-1",
+        "cloudFormationExecutionRoleArn": "arn:${AWS::Partition}:iam::296158189643:role/cdk-hnb659fds-cfn-exec-role-296158189643-us-east-1",
+        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-296158189643-us-east-1/6bd06438da77aa1d1d7c5a0da6d0440c272888b7fb04f6f73c579e02dba4e221.json",
+        "requiresBootstrapStackVersion": 6,
+        "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version",
+        "additionalDependencies": [
+          "PublicDemo-dev.assets"
+        ],
+        "lookupRole": {
+          "arn": "arn:${AWS::Partition}:iam::296158189643:role/cdk-hnb659fds-lookup-role-296158189643-us-east-1",
+          "requiresBootstrapStackVersion": 8,
+          "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version"
+        }
+      },
+      "dependencies": [
+        "PublicDemo-dev.assets"
+      ],
+      "metadata": {
+        "/PublicDemo-dev": [
+          {
+            "type": "aws:cdk:stack-tags",
+            "data": [
+              {
+                "Key": "CostCenter",
+                "Value": "Demo"
+              },
+              {
+                "Key": "Environment",
+                "Value": "dev"
+              },
+              {
+                "Key": "ManagedBy",
+                "Value": "CDK"
+              },
+              {
+                "Key": "Owner",
+                "Value": "AI-Concierge-Team"
+              },
+              {
+                "Key": "Project",
+                "Value": "AWS-AI-Concierge-Demo"
+              }
+            ]
+          }
+        ],
+        "/PublicDemo-dev/JudgesUserPool/smsRole/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "JudgesUserPoolsmsRoleFF257036"
+          }
+        ],
+        "/PublicDemo-dev/JudgesUserPool/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "JudgesUserPool86EBF025"
+          }
+        ],
+        "/PublicDemo-dev/JudgesUserPoolClient/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "JudgesUserPoolClient79CDC10E"
+          }
+        ],
+        "/PublicDemo-dev/WebsiteBucket/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "WebsiteBucket75C24D94"
+          }
+        ],
+        "/PublicDemo-dev/WebsiteBucket/Policy/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "WebsiteBucketPolicyE10E3262"
+          }
+        ],
+        "/PublicDemo-dev/WebsiteBucket/AutoDeleteObjectsCustomResource/Default": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "WebsiteBucketAutoDeleteObjectsCustomResource8750E461"
+          }
+        ],
+        "/PublicDemo-dev/Custom::S3AutoDeleteObjectsCustomResourceProvider/Role": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CustomS3AutoDeleteObjectsCustomResourceProviderRole3B1BD092"
+          }
+        ],
+        "/PublicDemo-dev/Custom::S3AutoDeleteObjectsCustomResourceProvider/Handler": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CustomS3AutoDeleteObjectsCustomResourceProviderHandler9D90184F"
+          }
+        ],
+        "/PublicDemo-dev/WebACL": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "WebACL"
+          }
+        ],
+        "/PublicDemo-dev/Distribution/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "Distribution830FAC52"
+          }
+        ],
+        "/PublicDemo-dev/SessionsTable": [
+          {
+            "type": "aws:cdk:hasPhysicalName",
+            "data": {
+              "Ref": "SessionsTable7C302024"
+            }
+          }
+        ],
+        "/PublicDemo-dev/SessionsTable/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SessionsTable7C302024"
+          }
+        ],
+        "/PublicDemo-dev/ConversationsTable": [
+          {
+            "type": "aws:cdk:hasPhysicalName",
+            "data": {
+              "Ref": "ConversationsTableCD91EB96"
+            }
+          }
+        ],
+        "/PublicDemo-dev/ConversationsTable/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "ConversationsTableCD91EB96"
+          }
+        ],
+        "/PublicDemo-dev/LambdaExecutionRole/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "LambdaExecutionRoleD5C26073"
+          }
+        ],
+        "/PublicDemo-dev/UserPoolId": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "UserPoolId"
+          }
+        ],
+        "/PublicDemo-dev/UserPoolClientId": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "UserPoolClientId"
+          }
+        ],
+        "/PublicDemo-dev/WebsiteBucketName": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "WebsiteBucketName"
+          }
+        ],
+        "/PublicDemo-dev/CloudFrontDistributionId": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CloudFrontDistributionId"
+          }
+        ],
+        "/PublicDemo-dev/CloudFrontDomainName": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CloudFrontDomainName"
+          }
+        ],
+        "/PublicDemo-dev/SessionsTableName": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "SessionsTableName"
+          }
+        ],
+        "/PublicDemo-dev/ConversationsTableName": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "ConversationsTableName"
+          }
+        ],
+        "/PublicDemo-dev/CDKMetadata/Default": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CDKMetadata"
+          }
+        ],
+        "/PublicDemo-dev/BootstrapVersion": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "BootstrapVersion"
+          }
+        ],
+        "/PublicDemo-dev/CheckBootstrapVersion": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CheckBootstrapVersion"
+          }
+        ]
+      },
+      "displayName": "PublicDemo-dev"
+    },
+    "Tree": {
+      "type": "cdk:tree",
+      "properties": {
+        "file": "tree.json"
+      }
+    }
+  }
+}
