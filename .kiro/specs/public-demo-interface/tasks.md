@@ -4,12 +4,12 @@
 
 Convert the public demo interface design into a series of actionable coding tasks for implementing a secure, serverless web application that allows judges to interact with the AWS AI Concierge through a chat interface.
 
-- [-] 1. Set up project infrastructure and AWS Cognito authentication
-
-  - Create AWS CDK project structure for serverless demo interface
-  - Configure AWS Cognito User Pool with secure password policies and judge account management
-  - Set up CloudFront distribution with S3 static website hosting and WAF protection
-  - Create IAM roles with least privilege permissions for Lambda functions and judge access
+- [x] 1. Set up project infrastructure and AWS Cognito authentication
+  - ✅ Create AWS CDK project structure for serverless demo interface
+  - ✅ Configure AWS Cognito User Pool with secure password policies and judge account management
+  - ✅ Set up CloudFront distribution with S3 static website hosting and WAF protection
+  - ✅ Create IAM roles with least privilege permissions for Lambda functions and judge access
+  - ✅ Add deployment scripts for infrastructure and judge account management
   - _Requirements: 1.1, 1.2, 5.3, 6.1_
 
 - [ ] 2. Implement React.js frontend with authentication
