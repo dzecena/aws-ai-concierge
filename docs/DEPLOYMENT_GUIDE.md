@@ -40,6 +40,21 @@ cd aws-ai-concierge-cdk
 2. Find `aws-ai-concierge-dev`
 3. Click "Test" and ask: "What are my AWS costs this month?"
 
+### ✅ Verify Deployment Success
+```powershell
+# Test Bedrock Agent permissions
+.\scripts\test-nova-permissions.ps1
+
+# Validate all components
+.\scripts\validate-deployment.ps1
+```
+
+**Expected Results**:
+- ✅ Agent Status: PREPARED
+- ✅ Foundation Model: amazon.nova-pro-v1:0
+- ✅ Lambda Functions: Active and responding
+- ✅ API Gateway: Properly secured
+
 ## 📋 Detailed Deployment Steps
 
 ### Step 1: Environment Setup

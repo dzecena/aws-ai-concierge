@@ -49,16 +49,15 @@ export class DemoBackendStack extends cdk.Stack {
       },
     });
 
-    // Lambda function for chat handling
-    const chatHandler = new lambda.Function(this, 'ChatHandler', {
+    // Lambda function for Bedrock Agent proxy
+    const chatHandler = new lambda.Function(this, 'BedrockAgentProxy', {
       runtime: lambda.Runtime.PYTHON_3_10,
-      handler: 'chat-handler.lambda_handler',
+      handler: 'bedrock-agent-proxy.lambda_handler',
       code: lambda.Code.fromAsset('./lambda'),
       role: lambdaRole,
-      timeout: cdk.Duration.seconds(30),
+      timeout: cdk.Duration.seconds(60),
       memorySize: 512,
       environment: {
-        SESSIONS_TABLE: sessionsTable.tableName,
         AGENT_ID: 'WWYOPOAATI',
         AGENT_ALIAS_ID: 'TSTALIASID',
       },
@@ -78,28 +77,6 @@ export class DemoBackendStack extends cdk.Stack {
     // Chat endpoint
     const chatResource = api.root.addResource('chat');
     chatResource.addMethod('POST', new apigateway.LambdaIntegration(chatHandler));
-    chatResource.addMethod('OPTIONS', new apigateway.MockIntegration({
-      integrationResponses: [{
-        statusCode: '200',
-        responseParameters: {
-          'method.response.header.Access-Control-Allow-Headers': "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'",
-          'method.response.header.Access-Control-Allow-Origin': "'*'",
-          'method.response.header.Access-Control-Allow-Methods': "'GET,POST,OPTIONS'",
-        },
-      }],
-      requestTemplates: {
-        'application/json': '{"statusCode": 200}',
-      },
-    }), {
-      methodResponses: [{
-        statusCode: '200',
-        responseParameters: {
-          'method.response.header.Access-Control-Allow-Headers': true,
-          'method.response.header.Access-Control-Allow-Origin': true,
-          'method.response.header.Access-Control-Allow-Methods': true,
-        },
-      }],
-    });
 
     // Outputs
     new cdk.CfnOutput(this, 'ApiUrl', {

@@ -1,0 +1,165 @@
+openapi: 3.0.0
+info:
+  title: AWS AI Concierge API
+  version: 1.0.0
+  description: API for AWS cost analysis, resource management, and security assessment
+
+servers:
+  - url: https://8yuqsjat6b.execute-api.us-east-1.amazonaws.com/prod
+    description: Production API Gateway endpoint
+
+paths:
+  /cost-analysis:
+    post:
+      summary: Analyze AWS costs and spending patterns
+      operationId: getCostAnalysis
+      description: Retrieves cost analysis for specified time period using AWS Cost Explorer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - time_period
+              properties:
+                time_period:
+                  type: string
+                  description: "Time period for analysis (e.g., 'MONTHLY', 'current_month', 'last_30_days')"
+                  example: "MONTHLY"
+                granularity:
+                  type: string
+                  enum: [DAILY, MONTHLY, HOURLY]
+                  description: "Granularity of cost data"
+                  default: "DAILY"
+                group_by:
+                  type: string
+                  enum: [SERVICE, REGION, USAGE_TYPE]
+                  description: "How to group cost data"
+                  default: "SERVICE"
+      responses:
+        '200':
+          description: Successful cost analysis
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      total_cost:
+                        type: number
+                      currency:
+                        type: string
+                      time_period:
+                        type: string
+                      breakdown:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            service_name:
+                              type: string
+                            cost:
+                              type: number
+                            percentage:
+                              type: number
+
+  /resource-inventory:
+    post:
+      summary: Get inventory of AWS resources
+      operationId: getResourceInventory
+      description: Retrieves inventory of AWS resources by type and region
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                resource_type:
+                  type: string
+                  description: "Type of resource (e.g., 'EC2', 'S3', 'RDS')"
+                  example: "EC2"
+                region:
+                  type: string
+                  description: "AWS region (e.g., 'us-east-1')"
+                  example: "us-east-1"
+      responses:
+        '200':
+          description: Resource inventory retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      resources:
+                        type: array
+                        items:
+                          type: object
+                      total_count:
+                        type: integer
+                      resource_type:
+                        type: string
+                      region:
+                        type: string
+
+  /security-assessment:
+    post:
+      summary: Perform security assessment
+      operationId: getSecurityAssessment
+      description: Analyzes AWS resources for security vulnerabilities and misconfigurations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                region:
+                  type: string
+                  description: "AWS region to assess (e.g., 'us-east-1')"
+                  example: "us-east-1"
+                assessment_type:
+                  type: string
+                  description: "Type of security assessment"
+                  enum: [security_groups, iam_policies, s3_buckets, all]
+                  default: "all"
+      responses:
+        '200':
+          description: Security assessment completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      security_issues:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            severity:
+                              type: string
+                            type:
+                              type: string
+                            resource_id:
+                              type: string
+                            description:
+                              type: string
+                      total_issues:
+                        type: integer
+                      high_priority:
+                        type: integer

@@ -334,7 +334,17 @@ export class AwsAiConciergeCdkStack extends cdk.Stack {
                 `arn:aws:bedrock:${this.region}::foundation-model/amazon.nova-pro-v1:0`,
                 `arn:aws:bedrock:${this.region}::foundation-model/amazon.nova-lite-v1:0`,
                 `arn:aws:bedrock:${this.region}::foundation-model/amazon.nova-micro-v1:0`,
+                `arn:aws:bedrock:*::foundation-model/*`,
               ],
+            }),
+            // Additional Bedrock Agent permissions
+            new iam.PolicyStatement({
+              effect: iam.Effect.ALLOW,
+              actions: [
+                'bedrock:Retrieve',
+                'bedrock:RetrieveAndGenerate',
+              ],
+              resources: ['*'],
             }),
           ],
         }),
