@@ -176,22 +176,17 @@ AWS Expert Judge: judge.aws@aws-competition.com / AwsJudge2025!`);
     setMessages(prev => [...prev, typingMessage]);
 
     try {
-      // Try to call the real API Gateway that connects to AWS services
+      // Call the Bedrock Agent via the chat endpoint
       const apiUrl = 'https://8yuqsjat6b.execute-api.us-east-1.amazonaws.com/prod';
       
-      let endpoint = '/cost-analysis';
-      let requestBody = { time_period: 'MONTHLY' };
+      const requestBody = {
+        message: currentMessage,
+        sessionId: `session-${Date.now()}`,
+        agentId: 'WWYOPOAATI',
+        agentAliasId: 'TSTALIASID'
+      };
       
-      // Determine endpoint based on message content
-      if (currentMessage.toLowerCase().includes('security')) {
-        endpoint = '/security-assessment';
-        requestBody = { region: 'us-east-1' };
-      } else if (currentMessage.toLowerCase().includes('resource') || currentMessage.toLowerCase().includes('instance')) {
-        endpoint = '/resource-inventory';
-        requestBody = { resource_type: 'EC2', region: 'us-east-1' };
-      }
-      
-      const response = await fetch(`${apiUrl}${endpoint}`, {
+      const response = await fetch(`${apiUrl}/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -203,14 +198,41 @@ AWS Expert Judge: judge.aws@aws-competition.com / AwsJudge2025!`);
       
       if (response.ok) {
         const data = await response.json();
-        if (data.success && data.data) {
-          // Format the real AWS data for display
-          aiResponse = formatRealAwsData(data.data, endpoint, username);
+        
+        // 🔍 DEBUG: Log the full API response
+        console.log('🔍 DEBUG - Full API Response:', JSON.stringify(data, null, 2));
+        console.log('🔍 DEBUG - Response structure check:');
+        console.log('  - data.success:', data.success);
+        console.log('  - data.data exists:', !!data.data);
+        console.log('  - data.data.response exists:', !!(data.data && data.data.response));
+        console.log('  - data.data.trace:', data.data && data.data.trace);
+        console.log('  - Is fallback response?:', data.data && data.data.trace && data.data.trace.fallback);
+        
+        if (data.success && data.data && (data.data.response || data.data.completion)) {
+          // Use the Bedrock Agent response from the nested data structure
+          aiResponse = data.data.response || data.data.completion;
+          
+          // 🔍 DEBUG: Check if this is real or simulated data
+          if (data.data.trace && data.data.trace.fallback) {
+            console.log('⚠️ WARNING: Received SIMULATED response, not real AWS data!');
+            console.log('⚠️ Fallback reason:', data.data.trace.reason);
+            aiResponse = `🔍 **DEBUG MODE ACTIVE** 🔍\n\n⚠️ **SIMULATED DATA DETECTED** ⚠️\nReason: ${data.data.trace.reason}\n\n---\n\n${aiResponse}`;
+          } else {
+            console.log('✅ SUCCESS: Received REAL AWS data from Bedrock Agent!');
+            aiResponse = `✅ **REAL AWS DATA** ✅\n\n${aiResponse}`;
+          }
+        } else if (data.response || data.completion) {
+          // Fallback for direct response format
+          aiResponse = data.response || data.completion;
+          console.log('🔍 DEBUG: Using direct response format');
         } else {
-          throw new Error('API returned unsuccessful response');
+          console.log('❌ ERROR: No valid response found in API data');
+          throw new Error('No response from Bedrock Agent');
         }
       } else {
-        throw new Error(`API call failed with status: ${response.status}`);
+        const errorText = await response.text();
+        console.log('❌ API Error Response:', errorText);
+        throw new Error(`API call failed with status: ${response.status} - ${errorText}`);
       }
 
       // Remove typing indicator and add real response

@@ -28,13 +28,18 @@ export class DemoBackendStack extends cdk.Stack {
       inlinePolicies: {
         BedrockAccess: new iam.PolicyDocument({
           statements: [
+            // Bedrock Agent Runtime permissions
             new iam.PolicyStatement({
               effect: iam.Effect.ALLOW,
               actions: [
                 'bedrock-agent-runtime:InvokeAgent',
+                'bedrock-runtime:InvokeModel',
+                'bedrock:InvokeAgent',
+                'bedrock:InvokeModel',
               ],
               resources: ['*'],
             }),
+            // DynamoDB permissions
             new iam.PolicyStatement({
               effect: iam.Effect.ALLOW,
               actions: [
@@ -43,6 +48,83 @@ export class DemoBackendStack extends cdk.Stack {
                 'dynamodb:Query',
               ],
               resources: [sessionsTable.tableArn],
+            }),
+            // Cost Explorer permissions
+            new iam.PolicyStatement({
+              effect: iam.Effect.ALLOW,
+              actions: [
+                'ce:GetCostAndUsage',
+                'ce:GetUsageReport',
+                'ce:GetReservationCoverage',
+                'ce:GetReservationPurchaseRecommendation',
+                'ce:GetReservationUtilization',
+                'ce:GetDimensionValues',
+                'ce:GetRightsizingRecommendation',
+                'ce:ListCostCategoryDefinitions',
+              ],
+              resources: ['*'],
+            }),
+            // EC2 permissions for resource discovery
+            new iam.PolicyStatement({
+              effect: iam.Effect.ALLOW,
+              actions: [
+                'ec2:DescribeInstances',
+                'ec2:DescribeImages',
+                'ec2:DescribeSnapshots',
+                'ec2:DescribeVolumes',
+                'ec2:DescribeSecurityGroups',
+                'ec2:DescribeVpcs',
+                'ec2:DescribeSubnets',
+                'ec2:DescribeNetworkAcls',
+                'ec2:DescribeRouteTables',
+                'ec2:DescribeInternetGateways',
+                'ec2:DescribeNatGateways',
+                'ec2:DescribeLoadBalancers',
+              ],
+              resources: ['*'],
+            }),
+            // S3 permissions for resource discovery
+            new iam.PolicyStatement({
+              effect: iam.Effect.ALLOW,
+              actions: [
+                's3:ListAllMyBuckets',
+                's3:ListBucket',
+                's3:GetBucketLocation',
+                's3:GetBucketVersioning',
+                's3:GetBucketEncryption',
+                's3:GetBucketPublicAccessBlock',
+              ],
+              resources: ['*'],
+            }),
+            // RDS permissions
+            new iam.PolicyStatement({
+              effect: iam.Effect.ALLOW,
+              actions: [
+                'rds:DescribeDBInstances',
+                'rds:DescribeDBClusters',
+                'rds:DescribeDBSnapshots',
+                'rds:DescribeDBClusterSnapshots',
+              ],
+              resources: ['*'],
+            }),
+            // Lambda permissions for resource discovery
+            new iam.PolicyStatement({
+              effect: iam.Effect.ALLOW,
+              actions: [
+                'lambda:ListFunctions',
+                'lambda:GetFunction',
+              ],
+              resources: ['*'],
+            }),
+            // CloudWatch permissions
+            new iam.PolicyStatement({
+              effect: iam.Effect.ALLOW,
+              actions: [
+                'cloudwatch:GetMetricStatistics',
+                'cloudwatch:ListMetrics',
+                'logs:DescribeLogGroups',
+              ],
+              resources: ['*'],
             }),
           ],
         }),
@@ -77,6 +159,10 @@ export class DemoBackendStack extends cdk.Stack {
     // Chat endpoint
     const chatResource = api.root.addResource('chat');
     chatResource.addMethod('POST', new apigateway.LambdaIntegration(chatHandler));
+
+    // Debug endpoint
+    const debugResource = api.root.addResource('debug');
+    debugResource.addMethod('POST', new apigateway.LambdaIntegration(chatHandler));
 
     // Outputs
     new cdk.CfnOutput(this, 'ApiUrl', {

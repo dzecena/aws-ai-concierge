@@ -10,7 +10,7 @@ export interface BedrockResponse {
 class BedrockService {
   private agentId = 'WWYOPOAATI'; // Our AWS AI Concierge agent
   private agentAliasId = 'TSTALIASID';
-  private apiUrl = 'https://ppt6w1dra0.execute-api.us-east-1.amazonaws.com/dev';
+  private apiUrl = 'https://8yuqsjat6b.execute-api.us-east-1.amazonaws.com/prod';
 
   async invokeAgent(message: string, sessionId?: string): Promise<BedrockResponse> {
     try {
@@ -34,11 +34,15 @@ class BedrockService {
       }
 
       const data = await response.json();
+      
+      // Handle nested response format from API Gateway
+      const responseData = data.success && data.data ? data.data : data;
+      
       return {
-        completion: data.response || data.completion || 'No response received',
-        sessionId: data.sessionId || sessionId || `session-${Date.now()}`,
-        citations: data.citations,
-        trace: data.trace
+        completion: responseData.response || responseData.completion || 'No response received',
+        sessionId: responseData.sessionId || sessionId || `session-${Date.now()}`,
+        citations: responseData.citations || [],
+        trace: responseData.trace || {}
       };
 
     } catch (error) {
