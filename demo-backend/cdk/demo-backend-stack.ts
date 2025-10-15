@@ -51,9 +51,9 @@ export class DemoBackendStack extends cdk.Stack {
 
     // Lambda function for chat handling
     const chatHandler = new lambda.Function(this, 'ChatHandler', {
-      runtime: lambda.Runtime.PYTHON_3_11,
+      runtime: lambda.Runtime.PYTHON_3_10,
       handler: 'chat-handler.lambda_handler',
-      code: lambda.Code.fromAsset('../lambda'),
+      code: lambda.Code.fromAsset('./lambda'),
       role: lambdaRole,
       timeout: cdk.Duration.seconds(30),
       memorySize: 512,
