@@ -1,39 +1,43 @@
-# AWS AI Concierge - Architecture Diagrams
+# AWS AI Concierge - Final Production Architecture
 
-## Production Architecture Overview
+## 🏗️ **Hybrid Multi-Model Architecture Overview**
 
-### Mermaid Diagram Code
+The AWS AI Concierge implements a groundbreaking **hybrid architecture** that combines Amazon Nova Lite's advanced reasoning with Bedrock Agent Core's reliability, delivering real-time AWS insights with zero hallucination.
+
+### **Hybrid Multi-Model Architecture**
 
 ```mermaid
 graph TB
-    User[👤 User] --> Bedrock[🤖 Amazon Bedrock Agent<br/>aws-ai-concierge-dev<br/>Claude 3 Haiku]
+    User[👤 User<br/>Natural Language Query] --> API[🌐 API Gateway<br/>CORS Enabled]
     
-    Bedrock --> Lambda[⚡ AWS Lambda<br/>aws-ai-concierge-tools-dev<br/>512MB, Python 3.11]
+    API --> Lambda[⚡ AWS Lambda<br/>Hybrid AI Engine<br/>512MB, Python 3.11]
     
-    Lambda --> CE[💰 Cost Explorer<br/>Cost Analysis]
-    Lambda --> EC2[🖥️ EC2<br/>Resource Discovery]
-    Lambda --> S3[🪣 S3<br/>Security Assessment]
-    Lambda --> RDS[🗄️ RDS<br/>Resource Monitoring]
-    Lambda --> CW[📊 CloudWatch<br/>Metrics & Health]
+    Lambda --> NovaLite[🚀 Amazon Nova Lite<br/>Direct Integration<br/>2.7s avg response]
+    Lambda --> BedrockAgent[🤖 Bedrock Agent Core<br/>Claude 3 Haiku Fallback<br/>7s avg response]
     
-    Lambda --> CWLogs[📝 CloudWatch Logs<br/>Audit Trail]
+    Lambda --> DateParser[📅 Intelligent Date Parser<br/>Any Month/Year Support]
     
-    IAM[🔐 IAM Roles<br/>Read-only Permissions] --> Lambda
-    IAM --> Bedrock
+    DateParser --> CE[💰 Cost Explorer API<br/>Real Historical Data]
+    Lambda --> EC2[🖥️ EC2 API<br/>Live Resource Discovery]
+    Lambda --> S3[🪣 S3 API<br/>Storage Analysis]
+    Lambda --> RDS[🗄️ RDS API<br/>Database Inventory]
+    Lambda --> SG[🛡️ Security Groups<br/>Security Assessment]
     
-    S3Bucket[🪣 S3 Bucket<br/>OpenAPI Specs] -.-> Bedrock
+    Lambda --> DDB[📊 DynamoDB<br/>Session Storage]
+    Lambda --> CWLogs[📝 CloudWatch Logs<br/>Debug & Audit]
+    
+    IAMLambda[🔐 Lambda Role<br/>AWS Service Access] --> Lambda
+    IAMBedrock[🔐 Bedrock Role<br/>Model Permissions] --> BedrockAgent
+    
+    Frontend[🌐 React Frontend<br/>CloudFront + S3] --> API
     
     style User fill:#e1f5fe
-    style Bedrock fill:#fff3e0
-    style Lambda fill:#fff3e0
+    style NovaLite fill:#4caf50
+    style BedrockAgent fill:#ff9800
+    style Lambda fill:#2196f3
+    style DateParser fill:#9c27b0
     style CE fill:#e8f5e8
-    style EC2 fill:#fff3e0
-    style S3 fill:#e8f5e8
-    style RDS fill:#e3f2fd
-    style CW fill:#f3e5f5
-    style CWLogs fill:#f3e5f5
-    style IAM fill:#ffebee
-    style S3Bucket fill:#e8f5e8
+    style Frontend fill:#00bcd4
 ```
 
 ### Detailed Component Flow

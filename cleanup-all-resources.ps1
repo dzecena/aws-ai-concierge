@@ -50,7 +50,8 @@ try {
             Write-Host "   Deleting Bedrock Agent: $($aiAgent.agentName)" -ForegroundColor Yellow
             aws bedrock-agent delete-agent --agent-id $aiAgent.agentId --skip-resource-in-use-check
             Write-Host "   ✅ Bedrock Agent deleted" -ForegroundColor Green
-        } else {
+        }
+        else {
             Write-Host "   ℹ️  No Bedrock Agent found" -ForegroundColor Gray
         }
     }
@@ -93,14 +94,15 @@ try {
     
     # Check for S3 buckets
     try {
-        $buckets = aws s3api list-buckets --query "Buckets[?contains(Name, 'aws-ai-concierge') || contains(Name, 'demo-interface')].Name" --output text
+        $bucketsJson = aws s3api list-buckets --output json
+        $allBuckets = $bucketsJson | ConvertFrom-Json
+        $buckets = $allBuckets.Buckets | Where-Object { $_.Name -like "*aws-ai-concierge*" -or $_.Name -like "*demo-interface*" }
+        
         if ($buckets) {
             Write-Host "   Found S3 buckets to clean:" -ForegroundColor Yellow
-            $buckets -split "`t" | ForEach-Object {
-                if ($_.Trim()) {
-                    Write-Host "   Deleting S3 bucket: $_" -ForegroundColor Yellow
-                    aws s3 rb "s3://$_" --force
-                }
+            foreach ($bucket in $buckets) {
+                Write-Host "   Deleting S3 bucket: $($bucket.Name)" -ForegroundColor Yellow
+                aws s3 rb "s3://$($bucket.Name)" --force
             }
         }
     }
@@ -110,14 +112,15 @@ try {
     
     # Check for CloudFormation stacks
     try {
-        $stacks = aws cloudformation list-stacks --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE --query "StackSummaries[?contains(StackName, 'AwsAiConcierge') || contains(StackName, 'PublicDemo')].StackName" --output text
+        $stacksJson = aws cloudformation list-stacks --stack-status-filter CREATE_COMPLETE UPDATE_COMPLETE --output json
+        $allStacks = $stacksJson | ConvertFrom-Json
+        $stacks = $allStacks.StackSummaries | Where-Object { $_.StackName -like "*AwsAiConcierge*" -or $_.StackName -like "*PublicDemo*" }
+        
         if ($stacks) {
             Write-Host "   Found CloudFormation stacks to delete:" -ForegroundColor Yellow
-            $stacks -split "`t" | ForEach-Object {
-                if ($_.Trim()) {
-                    Write-Host "   Deleting stack: $_" -ForegroundColor Yellow
-                    aws cloudformation delete-stack --stack-name $_
-                }
+            foreach ($stack in $stacks) {
+                Write-Host "   Deleting stack: $($stack.StackName)" -ForegroundColor Yellow
+                aws cloudformation delete-stack --stack-name $stack.StackName
             }
         }
     }
@@ -133,11 +136,11 @@ try {
     Write-Host "✅ Competition cleanup successful" -ForegroundColor White
     Write-Host ""
     Write-Host "📊 Cost Impact:" -ForegroundColor Blue
-    Write-Host "   • Bedrock Agent: $0/month (deleted)" -ForegroundColor White
-    Write-Host "   • Lambda Functions: $0/month (deleted)" -ForegroundColor White
-    Write-Host "   • S3 Storage: $0/month (deleted)" -ForegroundColor White
-    Write-Host "   • CloudFront: $0/month (deleted)" -ForegroundColor White
-    Write-Host "   • API Gateway: $0/month (deleted)" -ForegroundColor White
+    Write-Host "   • Bedrock Agent: `$0/month (deleted)" -ForegroundColor White
+    Write-Host "   • Lambda Functions: `$0/month (deleted)" -ForegroundColor White
+    Write-Host "   • S3 Storage: `$0/month (deleted)" -ForegroundColor White
+    Write-Host "   • CloudFront: `$0/month (deleted)" -ForegroundColor White
+    Write-Host "   • API Gateway: `$0/month (deleted)" -ForegroundColor White
     Write-Host ""
     Write-Host "🏆 Thank you for participating in the AWS AI competition!" -ForegroundColor Yellow
 
