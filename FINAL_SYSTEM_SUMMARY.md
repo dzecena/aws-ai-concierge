@@ -4,6 +4,20 @@
 
 Your AWS AI Concierge is now a **production-ready, competition-winning system** that delivers real AWS insights with zero hallucination!
 
+## 📓 **NEW: Complete Jupyter Notebook Deployment**
+
+### **🚀 Alternative Setup Method**
+For users without Kiro IDE access, we've created a comprehensive Jupyter notebook:
+
+- **📋 File**: `AWS_AI_Concierge_Complete_Setup_Guide.ipynb`
+- **⏱️ Duration**: 45-60 minutes for complete deployment
+- **🎯 Result**: Identical system with all capabilities
+- **📚 Educational**: Step-by-step learning experience
+- **🔧 Self-Contained**: Creates all files and infrastructure
+- **✅ Competition Ready**: Meets all AWS AI requirements
+
+**Perfect for**: Judges, evaluators, or anyone wanting to recreate the system without specialized IDE requirements.
+
 ## 🚀 **Final Architecture: Hybrid Multi-Model System**
 
 ### **🧠 Primary AI Engine: Amazon Nova Lite Direct**

@@ -4,7 +4,40 @@
 
 This guide walks you through deploying the AWS AI Concierge from scratch to a working AI assistant that can answer questions about your AWS infrastructure.
 
-## ⚡ Quick Start (5 Minutes)
+## 📓 **RECOMMENDED: Jupyter Notebook Deployment**
+
+### **🚀 Complete Setup Without Kiro IDE**
+
+**New to the project or don't have Kiro IDE?** Use our comprehensive Jupyter notebook that creates the entire system from scratch:
+
+#### **📋 What You Get:**
+- ✅ **Complete guided deployment** (45-60 minutes)
+- ✅ **All source code generated** automatically
+- ✅ **Real-time validation** at each step
+- ✅ **Automated AWS resource creation**
+- ✅ **Built-in testing and verification**
+- ✅ **Comprehensive cleanup procedures**
+
+#### **🎯 How to Use:**
+```bash
+# Prerequisites: AWS CLI configured, Python 3.11+, Jupyter
+jupyter notebook AWS_AI_Concierge_Complete_Setup_Guide.ipynb
+
+# Follow the step-by-step cells
+# Each cell builds on the previous one
+# Complete deployment in 45-60 minutes
+```
+
+#### **💡 Why Choose the Notebook:**
+- **No IDE dependency** - Works with any Jupyter environment
+- **Educational** - See exactly how each component is built
+- **Self-contained** - Creates all files and infrastructure
+- **Beginner friendly** - Clear explanations at every step
+- **Reproducible** - Can be run multiple times consistently
+
+---
+
+## ⚡ Alternative: Manual Deployment (Advanced Users)
 
 ### Prerequisites Check
 ```powershell

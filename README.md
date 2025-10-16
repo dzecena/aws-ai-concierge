@@ -33,6 +33,67 @@ An intelligent AWS infrastructure assistant powered by **Amazon Nova Lite** and 
 
 ---
 
+## 📓 **ALTERNATIVE: Complete Setup Without Kiro IDE**
+
+### **🚀 Jupyter Notebook Deployment Guide**
+
+**Don't have access to Kiro IDE?** No problem! We've created a comprehensive Jupyter notebook that recreates the entire AWS AI Concierge environment from scratch.
+
+#### **📋 What's Included:**
+- ✅ **Complete Step-by-Step Guide** - 45-60 minute deployment process
+- ✅ **All Source Code Generation** - Creates Lambda functions, CDK infrastructure, OpenAPI specs
+- ✅ **Automated AWS Deployment** - Handles Bedrock Agent creation and configuration
+- ✅ **Real-Time Validation** - Tests each component as it's deployed
+- ✅ **Cost Management** - Comprehensive cleanup procedures included
+- ✅ **Competition Ready** - Meets all AWS AI competition requirements
+
+#### **🎯 Quick Start:**
+
+**Step 1: Prerequisites**
+```bash
+# Ensure you have:
+# - AWS CLI configured (aws configure)
+# - Python 3.11+ with Jupyter installed
+# - Node.js 18+ and npm
+# - Git installed
+```
+
+**Step 2: Launch the Notebook**
+```bash
+# Clone or download the repository
+# Open the complete setup guide
+jupyter notebook AWS_AI_Concierge_Complete_Setup_Guide.ipynb
+```
+
+**Step 3: Follow the Guide**
+- Run cells sequentially (each builds on the previous)
+- The notebook will create all files and deploy infrastructure
+- Test your AI Concierge directly from the notebook
+- Use provided cleanup procedures to avoid ongoing costs
+
+#### **💡 Why Use the Jupyter Notebook?**
+- **No IDE Dependency** - Works with any Jupyter environment
+- **Educational** - See exactly how each component is built
+- **Self-Contained** - Creates the entire project structure
+- **Reproducible** - Can be run multiple times consistently
+- **Beginner Friendly** - Clear explanations at every step
+
+#### **📁 Notebook Location:**
+`AWS_AI_Concierge_Complete_Setup_Guide.ipynb` (in project root)
+
+#### **⏱️ Deployment Time:**
+**45-60 minutes** for complete setup (including AWS resource provisioning)
+
+#### **🎉 End Result:**
+Identical AWS AI Concierge system with all the same capabilities:
+- Bedrock Agent with Claude 3 Haiku
+- Real-time AWS API integration
+- Cost analysis, security assessment, resource discovery
+- Professional web interface
+- Complete cleanup procedures
+
+---
+
 ## 🚨 **MANDATORY CLEANUP PROCEDURES**
 
 ### **⚠️ CRITICAL: Avoid Unnecessary Costs**
@@ -439,6 +500,20 @@ User Query → Amazon Nova Pro (Bedrock Agent) → Lambda Tools → AWS APIs →
 
 ## 🚀 **Quick Start for Technical Evaluation**
 
+### **🎯 Choose Your Deployment Method:**
+
+#### **Option 1: Jupyter Notebook (Recommended for New Users)**
+**Perfect if you don't have Kiro IDE or want a guided experience**
+
+```bash
+# Prerequisites: AWS CLI, Python 3.11+, Jupyter
+jupyter notebook AWS_AI_Concierge_Complete_Setup_Guide.ipynb
+# Follow the step-by-step guide (45-60 minutes)
+```
+
+#### **Option 2: Direct Deployment (Advanced Users)**
+**For users familiar with CDK and AWS deployment**
+
 ### **Prerequisites**
 - AWS CLI configured with appropriate permissions
 - Node.js 18+ and npm
@@ -552,6 +627,9 @@ Removes demo website while keeping Bedrock Agent for AWS Console testing.
 ---
 
 ## 📚 **Documentation Package**
+
+### **🚀 Complete Setup Guide (No Kiro Required)**
+- **[AWS_AI_Concierge_Complete_Setup_Guide.ipynb](AWS_AI_Concierge_Complete_Setup_Guide.ipynb)** - **⭐ FEATURED** - Complete Jupyter notebook for full deployment without Kiro IDE
 
 ### **Competition Documentation**
 - [Competition Compliance Check](COMPETITION_COMPLIANCE_CHECK.md) - Detailed requirement analysis
