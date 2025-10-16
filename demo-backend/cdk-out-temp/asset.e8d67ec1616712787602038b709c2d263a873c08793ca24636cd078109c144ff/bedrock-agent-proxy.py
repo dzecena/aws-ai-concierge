@@ -102,25 +102,18 @@ def handle_cost_analysis(params: Dict[str, Any], request_id: str) -> Dict[str, A
     group_by = params.get('group_by', 'SERVICE')
     
     # Calculate date range
-    if time_period == 'CUSTOM' and 'custom_start_date' in params and 'custom_end_date' in params:
-        # Use custom dates provided by the parser
-        start_date = params['custom_start_date']
-        end_date = params['custom_end_date']
-        logger.info(f"[{request_id}] Using custom date range: {start_date} to {end_date}")
+    end_date = datetime.utcnow().date()
+    
+    if time_period == 'MONTHLY' or time_period == 'current_month':
+        start_date = end_date.replace(day=1)
+    elif time_period == 'last_30_days':
+        start_date = end_date - timedelta(days=30)
+    elif time_period == 'last_month':
+        first_of_current = end_date.replace(day=1)
+        end_date = first_of_current - timedelta(days=1)
+        start_date = end_date.replace(day=1)
     else:
-        # Use existing logic for standard time periods
-        end_date = datetime.utcnow().date()
-        
-        if time_period == 'MONTHLY' or time_period == 'current_month':
-            start_date = end_date.replace(day=1)
-        elif time_period == 'last_30_days':
-            start_date = end_date - timedelta(days=30)
-        elif time_period == 'last_month':
-            first_of_current = end_date.replace(day=1)
-            end_date = first_of_current - timedelta(days=1)
-            start_date = end_date.replace(day=1)
-        else:
-            start_date = end_date - timedelta(days=30)
+        start_date = end_date - timedelta(days=30)
     
     logger.info(f"[{request_id}] Analyzing costs from {start_date} to {end_date}")
     
@@ -346,7 +339,7 @@ def try_nova_lite_direct(message: str, session_id: str, request_id: str) -> Dict
     Try Nova Lite directly via bedrock-runtime API with real AWS data integration.
     """
     try:
-        logger.info(f"[{request_id}] 🔍 Calling Nova Lite with real AWS data integration v2...")
+        logger.info(f"[{request_id}] 🔍 Calling Nova Lite with real AWS data integration...")
         
         # Step 1: Check if user is asking for specific AWS data
         message_lower = message.lower()
@@ -354,7 +347,7 @@ def try_nova_lite_direct(message: str, session_id: str, request_id: str) -> Dict
         
         if 'cost' in message_lower or 'spending' in message_lower or 'bill' in message_lower:
             logger.info(f"[{request_id}] 💰 Cost query detected, fetching real AWS cost data...")
-            real_aws_data = get_real_cost_data(request_id, message)
+            real_aws_data = get_real_cost_data(request_id)
         elif 'security' in message_lower or 'vulnerable' in message_lower:
             logger.info(f"[{request_id}] 🛡️ Security query detected, fetching real security data...")
             real_aws_data = get_real_security_data(request_id)
@@ -457,125 +450,23 @@ Please provide a helpful response about AWS infrastructure management. If the us
             'error_type': type(e).__name__
         }
 
-def get_real_cost_data(request_id: str, user_message: str = "") -> str:
-    """Get real AWS cost data using Cost Explorer API with intelligent date parsing."""
+def get_real_cost_data(request_id: str) -> str:
+    """Get real AWS cost data using Cost Explorer API."""
     try:
-        logger.info(f"[{request_id}] 💰 Fetching real cost data for message: {user_message}")
+        logger.info(f"[{request_id}] 💰 Fetching real cost data...")
         
-        # Parse the user message for specific time periods
-        cost_params = parse_cost_time_period(user_message, request_id)
-        
-        # Use the existing cost analysis function with parsed parameters
-        cost_data = handle_cost_analysis(cost_params, request_id)
+        # Use the existing cost analysis function
+        cost_data = handle_cost_analysis({'time_period': 'MONTHLY'}, request_id)
         
         return f"""REAL AWS COST DATA:
 - Total Cost: ${cost_data['total_cost']} USD
 - Time Period: {cost_data['start_date']} to {cost_data['end_date']}
-- Period Description: {cost_params.get('period_description', 'Current period')}
 - Top Services: {', '.join([f"{item['service_name']}: ${item['cost']}" for item in cost_data['breakdown'][:5]])}
 - Total Services: {cost_data['total_services']}"""
         
     except Exception as e:
         logger.error(f"[{request_id}] ❌ Failed to get real cost data: {str(e)}")
         return None
-
-def parse_cost_time_period(message: str, request_id: str) -> Dict[str, Any]:
-    """Parse user message to determine the requested time period for cost analysis."""
-    import re
-    from datetime import datetime, timedelta
-    
-    message_lower = message.lower()
-    logger.info(f"[{request_id}] 🔍 Parsing time period from: {message}")
-    
-    # Default parameters
-    params = {
-        'time_period': 'MONTHLY',
-        'granularity': 'DAILY',
-        'group_by': 'SERVICE',
-        'period_description': 'Current month'
-    }
-    
-    # Check for specific months and years
-    months = {
-        'january': 1, 'jan': 1,
-        'february': 2, 'feb': 2,
-        'march': 3, 'mar': 3,
-        'april': 4, 'apr': 4,
-        'may': 5,
-        'june': 6, 'jun': 6,
-        'july': 7, 'jul': 7,
-        'august': 8, 'aug': 8,
-        'september': 9, 'sep': 9, 'sept': 9,
-        'october': 10, 'oct': 10,
-        'november': 11, 'nov': 11,
-        'december': 12, 'dec': 12
-    }
-    
-    # Look for month and year patterns
-    found_month = None
-    found_year = None
-    
-    for month_name, month_num in months.items():
-        if month_name in message_lower:
-            found_month = month_num
-            logger.info(f"[{request_id}] 🔍 Found month: {month_name} ({month_num})")
-            break
-    
-    # Look for year (2024, 2025, etc.)
-    year_match = re.search(r'\b(20\d{2})\b', message)
-    if year_match:
-        found_year = int(year_match.group(1))
-        logger.info(f"[{request_id}] 🔍 Found year: {found_year}")
-    
-    # If we found a specific month/year, calculate custom dates
-    if found_month:
-        if not found_year:
-            # Default to current year if no year specified
-            found_year = datetime.utcnow().year
-        
-        try:
-            # Calculate start and end dates for the specific month
-            from calendar import monthrange
-            
-            start_date = datetime(found_year, found_month, 1).date()
-            _, last_day = monthrange(found_year, found_month)
-            end_date = datetime(found_year, found_month, last_day).date()
-            
-            # Add one day to end_date for Cost Explorer (exclusive end date)
-            end_date = end_date + timedelta(days=1)
-            
-            params.update({
-                'time_period': 'CUSTOM',
-                'custom_start_date': start_date,
-                'custom_end_date': end_date,
-                'period_description': f"{list(months.keys())[list(months.values()).index(found_month)].title()} {found_year}"
-            })
-            
-            logger.info(f"[{request_id}] ✅ Custom period: {start_date} to {end_date}")
-            
-        except Exception as e:
-            logger.error(f"[{request_id}] ❌ Error calculating custom dates: {str(e)}")
-            # Fall back to default
-    
-    # Check for other time period keywords
-    elif 'last month' in message_lower or 'previous month' in message_lower:
-        params.update({
-            'time_period': 'last_month',
-            'period_description': 'Last month'
-        })
-    elif 'last 30 days' in message_lower or 'past 30 days' in message_lower:
-        params.update({
-            'time_period': 'last_30_days',
-            'period_description': 'Last 30 days'
-        })
-    elif 'this month' in message_lower or 'current month' in message_lower:
-        params.update({
-            'time_period': 'current_month',
-            'period_description': 'Current month'
-        })
-    
-    logger.info(f"[{request_id}] 📅 Final params: {params}")
-    return params
 
 def get_real_security_data(request_id: str) -> str:
     """Get real AWS security data."""

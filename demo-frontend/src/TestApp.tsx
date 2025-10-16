@@ -218,8 +218,29 @@ AWS Expert Judge: judge.aws@aws-competition.com / AwsJudge2025!`);
             console.log('⚠️ Fallback reason:', data.data.trace.reason);
             aiResponse = `🔍 **DEBUG MODE ACTIVE** 🔍\n\n⚠️ **SIMULATED DATA DETECTED** ⚠️\nReason: ${data.data.trace.reason}\n\n---\n\n${aiResponse}`;
           } else {
-            console.log('✅ SUCCESS: Received REAL AWS data from Bedrock Agent!');
-            aiResponse = `✅ **REAL AWS DATA** ✅\n\n${aiResponse}`;
+            console.log('✅ SUCCESS: Received REAL response!');
+            console.log('🔍 Model used:', data.data.model);
+            console.log('🔍 Source:', data.data.debug_info?.source);
+            
+            // Show which model is being used
+            const modelInfo = data.data.model || 'Unknown';
+            const source = data.data.debug_info?.source || 'unknown';
+            
+            if (source === 'nova_lite_direct_with_real_data') {
+              const responseTime = data.data.debug_info?.response_time || 0;
+              const tokens = data.data.debug_info?.usage?.totalTokens || 0;
+              const realData = data.data.debug_info?.real_data_integrated || false;
+              const dataType = realData ? "REAL AWS DATA" : "GENERAL GUIDANCE";
+              aiResponse = `🚀 **NOVA LITE + ${dataType}** 🚀\n⚡ Response time: ${responseTime.toFixed(2)}s | 🎯 Tokens: ${tokens} | 📊 Real data: ${realData}\n\n---\n\n${aiResponse}`;
+            } else if (source === 'nova_lite_direct') {
+              const responseTime = data.data.debug_info?.response_time || 0;
+              const tokens = data.data.debug_info?.usage?.totalTokens || 0;
+              aiResponse = `🚀 **NOVA LITE DIRECT** 🚀\n⚡ Response time: ${responseTime.toFixed(2)}s | 🎯 Tokens: ${tokens}\n\n---\n\n${aiResponse}`;
+            } else if (source === 'claude_haiku_agent') {
+              aiResponse = `🤖 **CLAUDE HAIKU AGENT** 🤖\n🔗 Via Bedrock Agent Core\n\n---\n\n${aiResponse}`;
+            } else {
+              aiResponse = `✅ **REAL AWS DATA** ✅\n🔍 Source: ${source}\n\n---\n\n${aiResponse}`;
+            }
           }
         } else if (data.response || data.completion) {
           // Fallback for direct response format
