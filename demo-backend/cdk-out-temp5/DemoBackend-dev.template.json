@@ -1,0 +1,709 @@
+{
+ "Resources": {
+  "ChatSessions9675362F": {
+   "Type": "AWS::DynamoDB::Table",
+   "Properties": {
+    "KeySchema": [
+     {
+      "AttributeName": "sessionId",
+      "KeyType": "HASH"
+     },
+     {
+      "AttributeName": "timestamp",
+      "KeyType": "RANGE"
+     }
+    ],
+    "AttributeDefinitions": [
+     {
+      "AttributeName": "sessionId",
+      "AttributeType": "S"
+     },
+     {
+      "AttributeName": "timestamp",
+      "AttributeType": "S"
+     }
+    ],
+    "BillingMode": "PAY_PER_REQUEST",
+    "TableName": "demo-chat-sessions",
+    "TimeToLiveSpecification": {
+     "AttributeName": "ttl",
+     "Enabled": true
+    }
+   },
+   "UpdateReplacePolicy": "Delete",
+   "DeletionPolicy": "Delete",
+   "Metadata": {
+    "aws:cdk:path": "DemoBackend-dev/ChatSessions/Resource"
+   }
+  },
+  "ChatLambdaRole381DAAC3": {
+   "Type": "AWS::IAM::Role",
+   "Properties": {
+    "AssumeRolePolicyDocument": {
+     "Statement": [
+      {
+       "Action": "sts:AssumeRole",
+       "Effect": "Allow",
+       "Principal": {
+        "Service": "lambda.amazonaws.com"
+       }
+      }
+     ],
+     "Version": "2012-10-17"
+    },
+    "ManagedPolicyArns": [
+     {
+      "Fn::Join": [
+       "",
+       [
+        "arn:",
+        {
+         "Ref": "AWS::Partition"
+        },
+        ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+       ]
+      ]
+     }
+    ],
+    "Policies": [
+     {
+      "PolicyDocument": {
+       "Statement": [
+        {
+         "Action": [
+          "bedrock-agent-runtime:InvokeAgent",
+          "bedrock-runtime:InvokeModel",
+          "bedrock:InvokeAgent",
+          "bedrock:InvokeModel",
+          "ce:GetCostAndUsage",
+          "ce:GetDimensionValues",
+          "ce:GetReservationCoverage",
+          "ce:GetReservationPurchaseRecommendation",
+          "ce:GetReservationUtilization",
+          "ce:GetRightsizingRecommendation",
+          "ce:GetUsageReport",
+          "ce:ListCostCategoryDefinitions",
+          "cloudwatch:GetMetricStatistics",
+          "cloudwatch:ListMetrics",
+          "ec2:DescribeImages",
+          "ec2:DescribeInstances",
+          "ec2:DescribeInternetGateways",
+          "ec2:DescribeLoadBalancers",
+          "ec2:DescribeNatGateways",
+          "ec2:DescribeNetworkAcls",
+          "ec2:DescribeRouteTables",
+          "ec2:DescribeSecurityGroups",
+          "ec2:DescribeSnapshots",
+          "ec2:DescribeSubnets",
+          "ec2:DescribeVolumes",
+          "ec2:DescribeVpcs",
+          "lambda:GetFunction",
+          "lambda:ListFunctions",
+          "logs:DescribeLogGroups",
+          "rds:DescribeDBClusterSnapshots",
+          "rds:DescribeDBClusters",
+          "rds:DescribeDBInstances",
+          "rds:DescribeDBSnapshots",
+          "s3:GetBucketEncryption",
+          "s3:GetBucketLocation",
+          "s3:GetBucketPublicAccessBlock",
+          "s3:GetBucketVersioning",
+          "s3:ListAllMyBuckets",
+          "s3:ListBucket"
+         ],
+         "Effect": "Allow",
+         "Resource": "*"
+        },
+        {
+         "Action": [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:Query"
+         ],
+         "Effect": "Allow",
+         "Resource": {
+          "Fn::GetAtt": [
+           "ChatSessions9675362F",
+           "Arn"
+          ]
+         }
+        }
+       ],
+       "Version": "2012-10-17"
+      },
+      "PolicyName": "BedrockAccess"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "DemoBackend-dev/ChatLambdaRole/Resource"
+   }
+  },
+  "BedrockAgentProxy9D656265": {
+   "Type": "AWS::Lambda::Function",
+   "Properties": {
+    "Code": {
+     "S3Bucket": "cdk-hnb659fds-assets-296158189643-us-east-1",
+     "S3Key": "d96619579645efade76fe9c936536befd6d2a973673095f3254b582ff41fc9a5.zip"
+    },
+    "Role": {
+     "Fn::GetAtt": [
+      "ChatLambdaRole381DAAC3",
+      "Arn"
+     ]
+    },
+    "Environment": {
+     "Variables": {
+      "AGENT_ID": "WWYOPOAATI",
+      "AGENT_ALIAS_ID": "TSTALIASID"
+     }
+    },
+    "Handler": "bedrock-agent-proxy.lambda_handler",
+    "MemorySize": 512,
+    "Runtime": "python3.10",
+    "Timeout": 60
+   },
+   "DependsOn": [
+    "ChatLambdaRole381DAAC3"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "DemoBackend-dev/BedrockAgentProxy/Resource",
+    "aws:asset:path": "asset.d96619579645efade76fe9c936536befd6d2a973673095f3254b582ff41fc9a5",
+    "aws:asset:is-bundled": false,
+    "aws:asset:property": "Code"
+   }
+  },
+  "DemoBackendApi09CFDD25": {
+   "Type": "AWS::ApiGateway::RestApi",
+   "Properties": {
+    "Description": "Backend API for AWS AI Concierge demo integration",
+    "Name": "AWS AI Concierge Demo Backend"
+   },
+   "Metadata": {
+    "aws:cdk:path": "DemoBackend-dev/DemoBackendApi/Resource"
+   }
+  },
+  "DemoBackendApiDeployment80E2E877a36abdf442f0a04dd15713f882d8a7ff": {
+   "Type": "AWS::ApiGateway::Deployment",
+   "Properties": {
+    "RestApiId": {
+     "Ref": "DemoBackendApi09CFDD25"
+    },
+    "Description": "Backend API for AWS AI Concierge demo integration"
+   },
+   "DependsOn": [
+    "DemoBackendApichatOPTIONS1602F0F6",
+    "DemoBackendApichatPOST3F2DE567",
+    "DemoBackendApichatCB318FF3",
+    "DemoBackendApidebugOPTIONSDFB29E2A",
+    "DemoBackendApidebugPOSTC2B51D44",
+    "DemoBackendApidebugC1D2F605",
+    "DemoBackendApiOPTIONS6FBDA2FF"
+   ],
+   "Metadata": {
+    "aws:cdk:path": "DemoBackend-dev/DemoBackendApi/Deployment/Resource"
+   }
+  },
+  "DemoBackendApiDeploymentStageprodED08233C": {
+   "Type": "AWS::ApiGateway::Stage",
+   "Properties": {
+    "RestApiId": {
+     "Ref": "DemoBackendApi09CFDD25"
+    },
+    "DeploymentId": {
+     "Ref": "DemoBackendApiDeployment80E2E877a36abdf442f0a04dd15713f882d8a7ff"
+    },
+    "StageName": "prod"
+   },
+   "Metadata": {
+    "aws:cdk:path": "DemoBackend-dev/DemoBackendApi/DeploymentStage.prod/Resource"
+   }
+  },
+  "DemoBackendApiOPTIONS6FBDA2FF": {
+   "Type": "AWS::ApiGateway::Method",
+   "Properties": {
+    "HttpMethod": "OPTIONS",
+    "ResourceId": {
+     "Fn::GetAtt": [
+      "DemoBackendApi09CFDD25",
+      "RootResourceId"
+     ]
+    },
+    "RestApiId": {
+     "Ref": "DemoBackendApi09CFDD25"
+    },
+    "ApiKeyRequired": false,
+    "AuthorizationType": "NONE",
+    "Integration": {
+     "IntegrationResponses": [
+      {
+       "ResponseParameters": {
+        "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'",
+        "method.response.header.Access-Control-Allow-Origin": "'https://d3sfryrdjx8e9t.cloudfront.net'",
+        "method.response.header.Vary": "'Origin'",
+        "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET,PUT,POST,DELETE,PATCH,HEAD'"
+       },
+       "ResponseTemplates": {
+        "application/json": "#set($origin = $input.params().header.get(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params().header.get(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3000\"))\n  #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin)\n#end"
+       },
+       "StatusCode": "204"
+      }
+     ],
+     "RequestTemplates": {
+      "application/json": "{ statusCode: 200 }"
+     },
+     "Type": "MOCK"
+    },
+    "MethodResponses": [
+     {
+      "ResponseParameters": {
+       "method.response.header.Access-Control-Allow-Headers": true,
+       "method.response.header.Access-Control-Allow-Origin": true,
+       "method.response.header.Vary": true,
+       "method.response.header.Access-Control-Allow-Methods": true
+      },
+      "StatusCode": "204"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "DemoBackend-dev/DemoBackendApi/Default/OPTIONS/Resource"
+   }
+  },
+  "DemoBackendApichatCB318FF3": {
+   "Type": "AWS::ApiGateway::Resource",
+   "Properties": {
+    "ParentId": {
+     "Fn::GetAtt": [
+      "DemoBackendApi09CFDD25",
+      "RootResourceId"
+     ]
+    },
+    "PathPart": "chat",
+    "RestApiId": {
+     "Ref": "DemoBackendApi09CFDD25"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "DemoBackend-dev/DemoBackendApi/Default/chat/Resource"
+   }
+  },
+  "DemoBackendApichatOPTIONS1602F0F6": {
+   "Type": "AWS::ApiGateway::Method",
+   "Properties": {
+    "HttpMethod": "OPTIONS",
+    "ResourceId": {
+     "Ref": "DemoBackendApichatCB318FF3"
+    },
+    "RestApiId": {
+     "Ref": "DemoBackendApi09CFDD25"
+    },
+    "ApiKeyRequired": false,
+    "AuthorizationType": "NONE",
+    "Integration": {
+     "IntegrationResponses": [
+      {
+       "ResponseParameters": {
+        "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'",
+        "method.response.header.Access-Control-Allow-Origin": "'https://d3sfryrdjx8e9t.cloudfront.net'",
+        "method.response.header.Vary": "'Origin'",
+        "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET,PUT,POST,DELETE,PATCH,HEAD'"
+       },
+       "ResponseTemplates": {
+        "application/json": "#set($origin = $input.params().header.get(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params().header.get(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3000\"))\n  #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin)\n#end"
+       },
+       "StatusCode": "204"
+      }
+     ],
+     "RequestTemplates": {
+      "application/json": "{ statusCode: 200 }"
+     },
+     "Type": "MOCK"
+    },
+    "MethodResponses": [
+     {
+      "ResponseParameters": {
+       "method.response.header.Access-Control-Allow-Headers": true,
+       "method.response.header.Access-Control-Allow-Origin": true,
+       "method.response.header.Vary": true,
+       "method.response.header.Access-Control-Allow-Methods": true
+      },
+      "StatusCode": "204"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "DemoBackend-dev/DemoBackendApi/Default/chat/OPTIONS/Resource"
+   }
+  },
+  "DemoBackendApichatPOSTApiPermissionDemoBackenddevDemoBackendApiDC4A7E80POSTchat457D1FA3": {
+   "Type": "AWS::Lambda::Permission",
+   "Properties": {
+    "Action": "lambda:InvokeFunction",
+    "FunctionName": {
+     "Fn::GetAtt": [
+      "BedrockAgentProxy9D656265",
+      "Arn"
+     ]
+    },
+    "Principal": "apigateway.amazonaws.com",
+    "SourceArn": {
+     "Fn::Join": [
+      "",
+      [
+       "arn:aws:execute-api:us-east-1:296158189643:",
+       {
+        "Ref": "DemoBackendApi09CFDD25"
+       },
+       "/",
+       {
+        "Ref": "DemoBackendApiDeploymentStageprodED08233C"
+       },
+       "/POST/chat"
+      ]
+     ]
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "DemoBackend-dev/DemoBackendApi/Default/chat/POST/ApiPermission.DemoBackenddevDemoBackendApiDC4A7E80.POST..chat"
+   }
+  },
+  "DemoBackendApichatPOSTApiPermissionTestDemoBackenddevDemoBackendApiDC4A7E80POSTchatE11C5892": {
+   "Type": "AWS::Lambda::Permission",
+   "Properties": {
+    "Action": "lambda:InvokeFunction",
+    "FunctionName": {
+     "Fn::GetAtt": [
+      "BedrockAgentProxy9D656265",
+      "Arn"
+     ]
+    },
+    "Principal": "apigateway.amazonaws.com",
+    "SourceArn": {
+     "Fn::Join": [
+      "",
+      [
+       "arn:aws:execute-api:us-east-1:296158189643:",
+       {
+        "Ref": "DemoBackendApi09CFDD25"
+       },
+       "/test-invoke-stage/POST/chat"
+      ]
+     ]
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "DemoBackend-dev/DemoBackendApi/Default/chat/POST/ApiPermission.Test.DemoBackenddevDemoBackendApiDC4A7E80.POST..chat"
+   }
+  },
+  "DemoBackendApichatPOST3F2DE567": {
+   "Type": "AWS::ApiGateway::Method",
+   "Properties": {
+    "HttpMethod": "POST",
+    "ResourceId": {
+     "Ref": "DemoBackendApichatCB318FF3"
+    },
+    "RestApiId": {
+     "Ref": "DemoBackendApi09CFDD25"
+    },
+    "AuthorizationType": "NONE",
+    "Integration": {
+     "IntegrationHttpMethod": "POST",
+     "Type": "AWS_PROXY",
+     "Uri": {
+      "Fn::Join": [
+       "",
+       [
+        "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/",
+        {
+         "Fn::GetAtt": [
+          "BedrockAgentProxy9D656265",
+          "Arn"
+         ]
+        },
+        "/invocations"
+       ]
+      ]
+     }
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "DemoBackend-dev/DemoBackendApi/Default/chat/POST/Resource"
+   }
+  },
+  "DemoBackendApidebugC1D2F605": {
+   "Type": "AWS::ApiGateway::Resource",
+   "Properties": {
+    "ParentId": {
+     "Fn::GetAtt": [
+      "DemoBackendApi09CFDD25",
+      "RootResourceId"
+     ]
+    },
+    "PathPart": "debug",
+    "RestApiId": {
+     "Ref": "DemoBackendApi09CFDD25"
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "DemoBackend-dev/DemoBackendApi/Default/debug/Resource"
+   }
+  },
+  "DemoBackendApidebugOPTIONSDFB29E2A": {
+   "Type": "AWS::ApiGateway::Method",
+   "Properties": {
+    "HttpMethod": "OPTIONS",
+    "ResourceId": {
+     "Ref": "DemoBackendApidebugC1D2F605"
+    },
+    "RestApiId": {
+     "Ref": "DemoBackendApi09CFDD25"
+    },
+    "ApiKeyRequired": false,
+    "AuthorizationType": "NONE",
+    "Integration": {
+     "IntegrationResponses": [
+      {
+       "ResponseParameters": {
+        "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'",
+        "method.response.header.Access-Control-Allow-Origin": "'https://d3sfryrdjx8e9t.cloudfront.net'",
+        "method.response.header.Vary": "'Origin'",
+        "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,GET,PUT,POST,DELETE,PATCH,HEAD'"
+       },
+       "ResponseTemplates": {
+        "application/json": "#set($origin = $input.params().header.get(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params().header.get(\"origin\")) #end\n#if($origin.matches(\"http://localhost:3000\"))\n  #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin)\n#end"
+       },
+       "StatusCode": "204"
+      }
+     ],
+     "RequestTemplates": {
+      "application/json": "{ statusCode: 200 }"
+     },
+     "Type": "MOCK"
+    },
+    "MethodResponses": [
+     {
+      "ResponseParameters": {
+       "method.response.header.Access-Control-Allow-Headers": true,
+       "method.response.header.Access-Control-Allow-Origin": true,
+       "method.response.header.Vary": true,
+       "method.response.header.Access-Control-Allow-Methods": true
+      },
+      "StatusCode": "204"
+     }
+    ]
+   },
+   "Metadata": {
+    "aws:cdk:path": "DemoBackend-dev/DemoBackendApi/Default/debug/OPTIONS/Resource"
+   }
+  },
+  "DemoBackendApidebugPOSTApiPermissionDemoBackenddevDemoBackendApiDC4A7E80POSTdebug4470B8B2": {
+   "Type": "AWS::Lambda::Permission",
+   "Properties": {
+    "Action": "lambda:InvokeFunction",
+    "FunctionName": {
+     "Fn::GetAtt": [
+      "BedrockAgentProxy9D656265",
+      "Arn"
+     ]
+    },
+    "Principal": "apigateway.amazonaws.com",
+    "SourceArn": {
+     "Fn::Join": [
+      "",
+      [
+       "arn:aws:execute-api:us-east-1:296158189643:",
+       {
+        "Ref": "DemoBackendApi09CFDD25"
+       },
+       "/",
+       {
+        "Ref": "DemoBackendApiDeploymentStageprodED08233C"
+       },
+       "/POST/debug"
+      ]
+     ]
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "DemoBackend-dev/DemoBackendApi/Default/debug/POST/ApiPermission.DemoBackenddevDemoBackendApiDC4A7E80.POST..debug"
+   }
+  },
+  "DemoBackendApidebugPOSTApiPermissionTestDemoBackenddevDemoBackendApiDC4A7E80POSTdebugE5C5D07C": {
+   "Type": "AWS::Lambda::Permission",
+   "Properties": {
+    "Action": "lambda:InvokeFunction",
+    "FunctionName": {
+     "Fn::GetAtt": [
+      "BedrockAgentProxy9D656265",
+      "Arn"
+     ]
+    },
+    "Principal": "apigateway.amazonaws.com",
+    "SourceArn": {
+     "Fn::Join": [
+      "",
+      [
+       "arn:aws:execute-api:us-east-1:296158189643:",
+       {
+        "Ref": "DemoBackendApi09CFDD25"
+       },
+       "/test-invoke-stage/POST/debug"
+      ]
+     ]
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "DemoBackend-dev/DemoBackendApi/Default/debug/POST/ApiPermission.Test.DemoBackenddevDemoBackendApiDC4A7E80.POST..debug"
+   }
+  },
+  "DemoBackendApidebugPOSTC2B51D44": {
+   "Type": "AWS::ApiGateway::Method",
+   "Properties": {
+    "HttpMethod": "POST",
+    "ResourceId": {
+     "Ref": "DemoBackendApidebugC1D2F605"
+    },
+    "RestApiId": {
+     "Ref": "DemoBackendApi09CFDD25"
+    },
+    "AuthorizationType": "NONE",
+    "Integration": {
+     "IntegrationHttpMethod": "POST",
+     "Type": "AWS_PROXY",
+     "Uri": {
+      "Fn::Join": [
+       "",
+       [
+        "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/",
+        {
+         "Fn::GetAtt": [
+          "BedrockAgentProxy9D656265",
+          "Arn"
+         ]
+        },
+        "/invocations"
+       ]
+      ]
+     }
+    }
+   },
+   "Metadata": {
+    "aws:cdk:path": "DemoBackend-dev/DemoBackendApi/Default/debug/POST/Resource"
+   }
+  },
+  "CDKMetadata": {
+   "Type": "AWS::CDK::Metadata",
+   "Properties": {
+    "Analytics": "v2:deflate64:H4sIAAAAAAAA/1WOQU/DMAyFf8vumam6A1w3ELcJ1HGf3MaUrE1S1Q5VFfW/o6RFjNP7/J717BKeHqHY4cT7Rnf73tQQL4JNp3Dia9SzQ+t1DfED657U86fLsCiDFmLlVy/ponq0tUaIr8E1YrxLyT2/02gNs/FuUXy4IjMJwzGJ4gOcQtORnJBJ4WBaFJpwhlgRy3Ew+cyGLzT0frbkJLl300WwzQ+tUBH7MDaUO88kX16ncKPfdGvOvCx/dn4sFRnXpp23IEOQf9vKeU1w44fvsoSygGJ3Y2P2Y3BiLEG16g9QqjeuZAEAAA=="
+   },
+   "Metadata": {
+    "aws:cdk:path": "DemoBackend-dev/CDKMetadata/Default"
+   }
+  }
+ },
+ "Outputs": {
+  "DemoBackendApiEndpointE9980DCB": {
+   "Value": {
+    "Fn::Join": [
+     "",
+     [
+      "https://",
+      {
+       "Ref": "DemoBackendApi09CFDD25"
+      },
+      ".execute-api.us-east-1.",
+      {
+       "Ref": "AWS::URLSuffix"
+      },
+      "/",
+      {
+       "Ref": "DemoBackendApiDeploymentStageprodED08233C"
+      },
+      "/"
+     ]
+    ]
+   }
+  },
+  "ApiUrl": {
+   "Description": "Demo Backend API URL",
+   "Value": {
+    "Fn::Join": [
+     "",
+     [
+      "https://",
+      {
+       "Ref": "DemoBackendApi09CFDD25"
+      },
+      ".execute-api.us-east-1.",
+      {
+       "Ref": "AWS::URLSuffix"
+      },
+      "/",
+      {
+       "Ref": "DemoBackendApiDeploymentStageprodED08233C"
+      },
+      "/"
+     ]
+    ]
+   }
+  },
+  "ChatEndpoint": {
+   "Description": "Chat API Endpoint",
+   "Value": {
+    "Fn::Join": [
+     "",
+     [
+      "https://",
+      {
+       "Ref": "DemoBackendApi09CFDD25"
+      },
+      ".execute-api.us-east-1.",
+      {
+       "Ref": "AWS::URLSuffix"
+      },
+      "/",
+      {
+       "Ref": "DemoBackendApiDeploymentStageprodED08233C"
+      },
+      "/chat"
+     ]
+    ]
+   }
+  }
+ },
+ "Parameters": {
+  "BootstrapVersion": {
+   "Type": "AWS::SSM::Parameter::Value<String>",
+   "Default": "/cdk-bootstrap/hnb659fds/version",
+   "Description": "Version of the CDK Bootstrap resources in this environment, automatically retrieved from SSM Parameter Store. [cdk:skip]"
+  }
+ },
+ "Rules": {
+  "CheckBootstrapVersion": {
+   "Assertions": [
+    {
+     "Assert": {
+      "Fn::Not": [
+       {
+        "Fn::Contains": [
+         [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
+         ],
+         {
+          "Ref": "BootstrapVersion"
+         }
+        ]
+       }
+      ]
+     },
+     "AssertDescription": "CDK bootstrap stack version 6 required. Please run 'cdk bootstrap' with a recent version of the CDK CLI."
+    }
+   ]
+  }
+ }
+}

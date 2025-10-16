@@ -1,0 +1,192 @@
+{
+  "version": "32.0.0",
+  "artifacts": {
+    "DemoBackend-dev.assets": {
+      "type": "cdk:asset-manifest",
+      "properties": {
+        "file": "DemoBackend-dev.assets.json",
+        "requiresBootstrapStackVersion": 6,
+        "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version"
+      }
+    },
+    "DemoBackend-dev": {
+      "type": "aws:cloudformation:stack",
+      "environment": "aws://296158189643/us-east-1",
+      "properties": {
+        "templateFile": "DemoBackend-dev.template.json",
+        "validateOnSynth": false,
+        "assumeRoleArn": "arn:${AWS::Partition}:iam::296158189643:role/cdk-hnb659fds-deploy-role-296158189643-us-east-1",
+        "cloudFormationExecutionRoleArn": "arn:${AWS::Partition}:iam::296158189643:role/cdk-hnb659fds-cfn-exec-role-296158189643-us-east-1",
+        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-296158189643-us-east-1/1e8b0140987fe57bdd408a788f05470dde2d9c0dd298faa805e726f065baccef.json",
+        "requiresBootstrapStackVersion": 6,
+        "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version",
+        "additionalDependencies": [
+          "DemoBackend-dev.assets"
+        ],
+        "lookupRole": {
+          "arn": "arn:${AWS::Partition}:iam::296158189643:role/cdk-hnb659fds-lookup-role-296158189643-us-east-1",
+          "requiresBootstrapStackVersion": 8,
+          "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version"
+        }
+      },
+      "dependencies": [
+        "DemoBackend-dev.assets"
+      ],
+      "metadata": {
+        "/DemoBackend-dev/ChatSessions": [
+          {
+            "type": "aws:cdk:hasPhysicalName",
+            "data": {
+              "Ref": "ChatSessions9675362F"
+            }
+          }
+        ],
+        "/DemoBackend-dev/ChatSessions/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "ChatSessions9675362F"
+          }
+        ],
+        "/DemoBackend-dev/ChatLambdaRole/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "ChatLambdaRole381DAAC3"
+          }
+        ],
+        "/DemoBackend-dev/BedrockAgentProxy/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "BedrockAgentProxy9D656265"
+          }
+        ],
+        "/DemoBackend-dev/DemoBackendApi/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DemoBackendApi09CFDD25"
+          }
+        ],
+        "/DemoBackend-dev/DemoBackendApi/Deployment/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DemoBackendApiDeployment80E2E877a36abdf442f0a04dd15713f882d8a7ff"
+          }
+        ],
+        "/DemoBackend-dev/DemoBackendApi/DeploymentStage.prod/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DemoBackendApiDeploymentStageprodED08233C"
+          }
+        ],
+        "/DemoBackend-dev/DemoBackendApi/Endpoint": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DemoBackendApiEndpointE9980DCB"
+          }
+        ],
+        "/DemoBackend-dev/DemoBackendApi/Default/OPTIONS/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DemoBackendApiOPTIONS6FBDA2FF"
+          }
+        ],
+        "/DemoBackend-dev/DemoBackendApi/Default/chat/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DemoBackendApichatCB318FF3"
+          }
+        ],
+        "/DemoBackend-dev/DemoBackendApi/Default/chat/OPTIONS/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DemoBackendApichatOPTIONS1602F0F6"
+          }
+        ],
+        "/DemoBackend-dev/DemoBackendApi/Default/chat/POST/ApiPermission.DemoBackenddevDemoBackendApiDC4A7E80.POST..chat": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DemoBackendApichatPOSTApiPermissionDemoBackenddevDemoBackendApiDC4A7E80POSTchat457D1FA3"
+          }
+        ],
+        "/DemoBackend-dev/DemoBackendApi/Default/chat/POST/ApiPermission.Test.DemoBackenddevDemoBackendApiDC4A7E80.POST..chat": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DemoBackendApichatPOSTApiPermissionTestDemoBackenddevDemoBackendApiDC4A7E80POSTchatE11C5892"
+          }
+        ],
+        "/DemoBackend-dev/DemoBackendApi/Default/chat/POST/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DemoBackendApichatPOST3F2DE567"
+          }
+        ],
+        "/DemoBackend-dev/DemoBackendApi/Default/debug/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DemoBackendApidebugC1D2F605"
+          }
+        ],
+        "/DemoBackend-dev/DemoBackendApi/Default/debug/OPTIONS/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DemoBackendApidebugOPTIONSDFB29E2A"
+          }
+        ],
+        "/DemoBackend-dev/DemoBackendApi/Default/debug/POST/ApiPermission.DemoBackenddevDemoBackendApiDC4A7E80.POST..debug": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DemoBackendApidebugPOSTApiPermissionDemoBackenddevDemoBackendApiDC4A7E80POSTdebug4470B8B2"
+          }
+        ],
+        "/DemoBackend-dev/DemoBackendApi/Default/debug/POST/ApiPermission.Test.DemoBackenddevDemoBackendApiDC4A7E80.POST..debug": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DemoBackendApidebugPOSTApiPermissionTestDemoBackenddevDemoBackendApiDC4A7E80POSTdebugE5C5D07C"
+          }
+        ],
+        "/DemoBackend-dev/DemoBackendApi/Default/debug/POST/Resource": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "DemoBackendApidebugPOSTC2B51D44"
+          }
+        ],
+        "/DemoBackend-dev/ApiUrl": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "ApiUrl"
+          }
+        ],
+        "/DemoBackend-dev/ChatEndpoint": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "ChatEndpoint"
+          }
+        ],
+        "/DemoBackend-dev/CDKMetadata/Default": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CDKMetadata"
+          }
+        ],
+        "/DemoBackend-dev/BootstrapVersion": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "BootstrapVersion"
+          }
+        ],
+        "/DemoBackend-dev/CheckBootstrapVersion": [
+          {
+            "type": "aws:cdk:logicalId",
+            "data": "CheckBootstrapVersion"
+          }
+        ]
+      },
+      "displayName": "DemoBackend-dev"
+    },
+    "Tree": {
+      "type": "cdk:tree",
+      "properties": {
+        "file": "tree.json"
+      }
+    }
+  }
+}
