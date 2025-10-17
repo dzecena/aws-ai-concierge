@@ -102,6 +102,14 @@ class AWSClientManager:
         """Get Organizations client (global service)."""
         return self.get_client('organizations')
     
+    def get_budgets_client(self) -> Any:
+        """Get Budgets client (us-east-1 only)."""
+        return self.get_client('budgets', 'us-east-1')
+    
+    def get_sts_client(self) -> Any:
+        """Get STS client (global service)."""
+        return self.get_client('sts')
+    
     def get_available_regions(self, service_name: str) -> list:
         """
         Get list of available regions for a service.

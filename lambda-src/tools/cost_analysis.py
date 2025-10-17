@@ -95,10 +95,13 @@ class CostAnalysisHandler:
                 # For daily analysis, use DAILY granularity
                 granularity = 'DAILY'
             elif time_period == 'MONTHLY':
-                # Get current month data - but ensure start_date is before end_date
+                # Get current month data from 1st of month to today
                 start_date = end_date.replace(day=1)
-                # If today is the 1st, get previous month's data instead
+                # Cost Explorer requires end_date to be exclusive, so we use tomorrow
+                # But if we're on the 1st day of the month, we need at least 1 day of data
                 if start_date == end_date:
+                    # If today is the 1st, we have no current month data yet
+                    # Get previous month's complete data instead
                     if end_date.month == 1:
                         start_date = end_date.replace(year=end_date.year-1, month=12, day=1)
                         end_date = end_date.replace(year=end_date.year-1, month=12, day=31)
@@ -108,6 +111,10 @@ class CostAnalysisHandler:
                         import calendar
                         last_day = calendar.monthrange(end_date.year, end_date.month-1)[1]
                         end_date = end_date.replace(month=end_date.month-1, day=last_day)
+                else:
+                    # Use current month data from 1st to today
+                    # Note: Cost Explorer end date is exclusive, so we add 1 day
+                    end_date = end_date + timedelta(days=1)
             elif time_period == 'YEARLY':
                 # Get current year data - but ensure start_date is before end_date
                 start_date = end_date.replace(month=1, day=1)
@@ -152,6 +159,18 @@ class CostAnalysisHandler:
             # Process the response
             result = self._process_cost_response(response, time_period, group_by, start_date, end_date)
             
+            # If Cost Explorer returns zero, try AWS Budgets API as fallback
+            if result.get('total_cost', 0) == 0:
+                logger.info(f"[{request_id}] Cost Explorer returned $0, trying AWS Budgets API fallback")
+                budget_data = self._get_budget_costs(request_id)
+                if budget_data and budget_data.get('total_cost', 0) > 0:
+                    logger.info(f"[{request_id}] Using Budgets API data: ${budget_data.get('total_cost', 0):.2f}")
+                    result = budget_data
+                    result['data_source'] = 'AWS Budgets API (Cost Explorer data not yet available)'
+                else:
+                    result['message'] = 'Cost data is not yet available through Cost Explorer API. This is normal for recent charges which can take 8-24 hours to appear.'
+                    result['suggestion'] = 'Try again in a few hours for more detailed cost breakdown.'
+            
             # Log cost analysis activity
             self.audit_logger.log_cost_analysis(
                 request_id=request_id,
@@ -168,6 +187,11 @@ class CostAnalysisHandler:
             error_code = e.response.get('Error', {}).get('Code', 'Unknown')
             if error_code == 'DataUnavailableException':
                 logger.warning(f"[{request_id}] Cost data unavailable for the specified period")
+                # Try AWS Budgets API as fallback
+                budget_data = self._get_budget_costs(request_id)
+                if budget_data:
+                    return budget_data
+                
                 # Return empty result with explanation
                 return {
                     'total_cost': 0.0,
@@ -772,3 +796,72 @@ class CostAnalysisHandler:
         except Exception as e:
             logger.error(f"[{request_id}] Error generating cost optimization recommendations: {str(e)}")
             raise
+    
+    def _get_budget_costs(self, request_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get current costs from AWS Budgets API as fallback when Cost Explorer is delayed.
+        
+        Args:
+            request_id: Request ID for tracking
+            
+        Returns:
+            Budget cost data or None if unavailable
+        """
+        try:
+            # Get Budgets client
+            budgets_client = self.aws_clients.get_budgets_client()
+            
+            # Get account ID
+            sts_client = self.aws_clients.get_sts_client()
+            account_id = sts_client.get_caller_identity()['Account']
+            
+            # List budgets to find one with current spend data
+            budgets_response = budgets_client.describe_budgets(AccountId=account_id)
+            budgets = budgets_response.get('Budgets', [])
+            
+            logger.info(f"[{request_id}] Found {len(budgets)} budgets for fallback cost data")
+            
+            # Look for a budget with actual spend data
+            for budget in budgets:
+                calculated_spend = budget.get('CalculatedSpend', {})
+                actual_spend = calculated_spend.get('ActualSpend', {})
+                
+                if actual_spend and actual_spend.get('Amount'):
+                    cost_amount = float(actual_spend.get('Amount', 0))
+                    currency = actual_spend.get('Unit', 'USD')
+                    
+                    if cost_amount > 0:
+                        logger.info(f"[{request_id}] Found budget '{budget.get('BudgetName')}' with actual spend: ${cost_amount:.2f}")
+                        
+                        # Create a simplified cost response
+                        return {
+                            'total_cost': round(cost_amount, 2),
+                            'currency': currency,
+                            'time_period': 'CURRENT_MONTH',
+                            'group_by': 'TOTAL',
+                            'start_date': datetime.now().date().replace(day=1).isoformat(),
+                            'end_date': datetime.now().date().isoformat(),
+                            'breakdown': [{
+                                'service_name': 'Total (from Budget)',
+                                'cost': round(cost_amount, 2),
+                                'percentage': 100.0,
+                                'note': 'Aggregated cost from AWS Budgets - detailed breakdown not available'
+                            }],
+                            'daily_costs': [],
+                            'cost_trend': {'trend': 'unknown', 'change_percentage': 0},
+                            'optimization_insights': [
+                                f"Current month spending: ${cost_amount:.2f}",
+                                "Detailed cost breakdown will be available once Cost Explorer data updates (8-24 hours)",
+                                "This data comes from AWS Budgets which updates more frequently than Cost Explorer"
+                            ],
+                            'analysis_date': datetime.utcnow().isoformat(),
+                            'data_source': 'AWS Budgets API',
+                            'note': 'Using AWS Budgets data due to Cost Explorer API delay'
+                        }
+            
+            logger.info(f"[{request_id}] No budgets found with current spend data")
+            return None
+            
+        except Exception as e:
+            logger.warning(f"[{request_id}] Could not get budget costs: {str(e)}")
+            return None

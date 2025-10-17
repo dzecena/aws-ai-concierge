@@ -196,6 +196,24 @@ export class AwsAiConciergeCdkStack extends cdk.Stack {
               ],
               resources: ['*'],
             }),
+            // AWS Budgets permissions for cost fallback
+            new iam.PolicyStatement({
+              effect: iam.Effect.ALLOW,
+              actions: [
+                'budgets:DescribeBudgets',
+                'budgets:DescribeBudget',
+                'budgets:ViewBudget',
+              ],
+              resources: ['*'],
+            }),
+            // STS permissions for account identity
+            new iam.PolicyStatement({
+              effect: iam.Effect.ALLOW,
+              actions: [
+                'sts:GetCallerIdentity',
+              ],
+              resources: ['*'],
+            }),
           ],
         }),
       },
