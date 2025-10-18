@@ -681,4 +681,4 @@ For technical questions or demo assistance:
 
 ---
 
-*Built with ❤️ using Kiro IDE, Amazon Nova Pro, and AWS best practices*
+*Built with ❤️ using Kiro IDE, Amazon Nova Pro, and AWS best practices with the critical participation of our Human Director Daniel Zeceña*
