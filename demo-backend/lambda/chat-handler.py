@@ -221,7 +221,7 @@ I'm your AWS AI Concierge, powered by **Amazon Nova Pro** (amazon.nova-pro-v1:0)
     if 'cost' in message_lower or 'spending' in message_lower:
         # Try to get real cost data
         try:
-            cost_data = get_cost_analysis()
+            cost_data = get_cost_analysis(message)
             if cost_data.get('total_cost', 0) > 0:
                 services_text = ""
                 for service, cost in cost_data.get('services', [])[:5]:
@@ -231,20 +231,36 @@ I'm your AWS AI Concierge, powered by **Amazon Nova Pro** (amazon.nova-pro-v1:0)
                 if cost_data.get('data_source'):
                     data_source_note = f"\n*Data source: {cost_data['data_source']}*"
                 
+                # Fix the date presentation for user-friendly display
+                display_period = cost_data['period']
+                if cost_data.get('start_date') and cost_data.get('end_date'):
+                    start_date = cost_data['start_date']
+                    end_date = cost_data['end_date']
+                    # If we have custom dates, adjust the end date for display (subtract 1 day)
+                    try:
+                        from datetime import datetime, timedelta
+                        end_date_obj = datetime.strptime(end_date, '%Y-%m-%d').date()
+                        # Subtract 1 day for user-friendly display (since API uses exclusive end date)
+                        display_end_date = (end_date_obj - timedelta(days=1)).strftime('%Y-%m-%d')
+                        display_period = f"{start_date} to {display_end_date}"
+                    except Exception as e:
+                        logger.warning(f"Could not adjust display date: {str(e)}")
+                        display_period = f"{start_date} to {end_date}"
+
                 return f"""**🚀 Powered by Amazon Nova Lite (Direct Integration with Real AWS Data)**
 
-Hello! Here are the details of your current cost for the month of {cost_data['period']}:
+Hello! Here are the details of your AWS cost for {display_period}:
 
 **Total Cost:** ${cost_data['total_cost']:.2f} USD
 
-**Time Period:** {cost_data['period']}
+**Time Period:** {display_period}
 
 **Top Services and Their Costs:**
 {services_text.rstrip()}
 
 **Total Number of Services:** {cost_data['service_count']}
 
-For the entire month of {cost_data['period']}, your AWS spending is ${cost_data['total_cost']:.2f}. If you have any questions or need further assistance, feel free to ask!{data_source_note}"""
+For {display_period}, your AWS spending is ${cost_data['total_cost']:.2f}. If you have any questions or need further assistance, feel free to ask!{data_source_note}"""
             else:
                 # Fallback to simulated data if no real data available
                 return """**AWS Cost Analysis** (Amazon Nova Pro)
@@ -404,14 +420,34 @@ def create_response(status_code: int, body: Dict[str, Any]) -> Dict[str, Any]:
         'body': json.dumps(body)
     }
 
-def get_cost_analysis() -> Dict[str, Any]:
-    """Get AWS cost analysis using Cost Explorer API with Budgets fallback"""
+def get_cost_analysis(user_message: str = "") -> Dict[str, Any]:
+    """Get AWS cost analysis using Cost Explorer API with intelligent date parsing and Budgets fallback"""
     try:
+        # Parse the user message for specific time periods
+        cost_params = parse_cost_time_period(user_message)
+        
         ce_client = boto3.client('ce', region_name='us-east-1')
         
-        # Get current month costs
-        end_date = datetime.now().date()
-        start_date = end_date.replace(day=1)
+        # Calculate date range based on parsed parameters
+        if cost_params.get('time_period') == 'CUSTOM':
+            start_date = cost_params['custom_start_date']
+            end_date = cost_params['custom_end_date']
+        else:
+            # Use existing logic for standard time periods
+            end_date = datetime.now().date()
+            
+            if cost_params['time_period'] == 'MONTHLY' or cost_params['time_period'] == 'current_month':
+                start_date = end_date.replace(day=1)
+            elif cost_params['time_period'] == 'last_30_days':
+                start_date = end_date - timedelta(days=30)
+            elif cost_params['time_period'] == 'last_month':
+                first_of_current = end_date.replace(day=1)
+                end_date = first_of_current - timedelta(days=1)
+                start_date = end_date.replace(day=1)
+            else:
+                start_date = end_date.replace(day=1)
+        
+        logger.info(f"Analyzing costs from {start_date} to {end_date}")
         
         response = ce_client.get_cost_and_usage(
             TimePeriod={
@@ -442,8 +478,8 @@ def get_cost_analysis() -> Dict[str, Any]:
                 service_costs[service] += cost
                 total_cost += cost
         
-        # If Cost Explorer returns zero, try AWS Budgets API as fallback
-        if total_cost == 0:
+        # If Cost Explorer returns zero and we're looking at current month, try AWS Budgets API as fallback
+        if total_cost == 0 and cost_params['time_period'] in ['MONTHLY', 'current_month']:
             logger.info("Cost Explorer returned $0, trying AWS Budgets API fallback")
             budget_cost = get_budget_costs()
             if budget_cost and budget_cost > 0:
@@ -451,7 +487,9 @@ def get_cost_analysis() -> Dict[str, Any]:
                 return {
                     'total_cost': round(budget_cost, 2),
                     'currency': 'USD',
-                    'period': f"{start_date.strftime('%B %Y')}",
+                    'period': cost_params.get('period_description', f"{start_date.strftime('%B %Y')}"),
+                    'start_date': start_date.strftime('%Y-%m-%d'),
+                    'end_date': end_date.strftime('%Y-%m-%d'),
                     'services': [('Total (from Budget)', budget_cost)],
                     'service_count': 1,
                     'data_source': 'AWS Budgets API (Cost Explorer data not yet available)',
@@ -464,7 +502,9 @@ def get_cost_analysis() -> Dict[str, Any]:
         return {
             'total_cost': round(total_cost, 2),
             'currency': 'USD',
-            'period': f"{start_date.strftime('%B %Y')}",
+            'period': cost_params.get('period_description', f"{start_date.strftime('%B %Y')}"),
+            'start_date': start_date.strftime('%Y-%m-%d'),
+            'end_date': end_date.strftime('%Y-%m-%d'),
             'services': sorted_services[:10],  # Top 10 services
             'service_count': len(service_costs)
         }
@@ -514,3 +554,96 @@ def get_budget_costs() -> Optional[float]:
     except Exception as e:
         logger.warning(f"Could not get budget costs: {str(e)}")
         return None
+
+def parse_cost_time_period(message: str) -> Dict[str, Any]:
+    """Parse user message to determine the requested time period for cost analysis."""
+    import re
+    from calendar import monthrange
+    
+    message_lower = message.lower()
+    logger.info(f"Parsing time period from: {message}")
+    
+    # Default parameters
+    params = {
+        'time_period': 'MONTHLY',
+        'granularity': 'DAILY',
+        'group_by': 'SERVICE',
+        'period_description': 'Current month'
+    }
+    
+    # Check for specific months and years
+    months = {
+        'january': 1, 'jan': 1,
+        'february': 2, 'feb': 2,
+        'march': 3, 'mar': 3,
+        'april': 4, 'apr': 4,
+        'may': 5,
+        'june': 6, 'jun': 6,
+        'july': 7, 'jul': 7,
+        'august': 8, 'aug': 8,
+        'september': 9, 'sep': 9, 'sept': 9,
+        'october': 10, 'oct': 10,
+        'november': 11, 'nov': 11,
+        'december': 12, 'dec': 12
+    }
+    
+    # Look for month and year patterns
+    found_month = None
+    found_year = None
+    
+    for month_name, month_num in months.items():
+        if month_name in message_lower:
+            found_month = month_num
+            logger.info(f"Found month: {month_name} ({month_num})")
+            break
+    
+    # Look for year (2024, 2025, etc.)
+    year_match = re.search(r'\b(20\d{2})\b', message)
+    if year_match:
+        found_year = int(year_match.group(1))
+        logger.info(f"Found year: {found_year}")
+    
+    # If we found a specific month/year, calculate custom dates
+    if found_month:
+        if not found_year:
+            # Default to current year if no year specified
+            found_year = datetime.now().year
+        
+        try:
+            # Calculate start and end dates for the specific month
+            start_date = datetime(found_year, found_month, 1).date()
+            _, last_day = monthrange(found_year, found_month)
+            end_date = datetime(found_year, found_month, last_day).date()
+            
+            params.update({
+                'time_period': 'CUSTOM',
+                'custom_start_date': start_date,
+                'custom_end_date': end_date,
+                'period_description': f"{list(months.keys())[list(months.values()).index(found_month)].title()} {found_year}"
+            })
+            
+            logger.info(f"Custom period: {start_date} to {end_date}")
+            
+        except Exception as e:
+            logger.error(f"Error calculating custom dates: {str(e)}")
+            # Fall back to default
+    
+    # Check for other time period keywords
+    elif 'last month' in message_lower or 'previous month' in message_lower:
+        params.update({
+            'time_period': 'last_month',
+            'period_description': 'Last month'
+        })
+    elif 'last 30 days' in message_lower or 'past 30 days' in message_lower:
+        params.update({
+            'time_period': 'last_30_days',
+            'period_description': 'Last 30 days'
+        })
+    elif 'this month' in message_lower or 'current month' in message_lower:
+        params.update({
+            'time_period': 'current_month',
+            'period_description': 'Current month'
+        })
+    
+    logger.info(f"Final params: {params}")
+    return params

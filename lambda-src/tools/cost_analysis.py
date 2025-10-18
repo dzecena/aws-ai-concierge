@@ -3,8 +3,8 @@ Cost analysis tools for AWS AI Concierge
 """
 
 import logging
-from typing import Dict, Any, List, Optional
-from datetime import datetime, timedelta
+from typing import Dict, Any, List, Optional, Tuple
+from datetime import datetime, timedelta, date
 from botocore.exceptions import ClientError
 from utils.audit_logger import AuditLogger
 
@@ -54,7 +54,7 @@ class CostAnalysisHandler:
     
     def get_cost_analysis(self, params: Dict[str, Any], request_id: str) -> Dict[str, Any]:
         """
-        Analyze AWS costs and spending patterns.
+        Analyze AWS costs and spending patterns with intelligent date parsing.
         
         Args:
             params: Parameters including time_period, granularity, group_by
@@ -71,60 +71,94 @@ class CostAnalysisHandler:
             granularity = params.get('granularity', 'DAILY')
             group_by = params.get('group_by', 'SERVICE')
             
-            # Normalize natural language time periods
-            time_period = self._normalize_time_period(time_period)
+            # Check if this is a specific month/year query (e.g., "december_2024")
+            parsed_dates = self._parse_specific_date(time_period, request_id)
+            if parsed_dates:
+                start_date, end_date = parsed_dates
+                logger.info(f"[{request_id}] Using parsed dates: {start_date} to {end_date}")
+                
+                # Validate that the date range is not in the future
+                current_date = datetime.utcnow().date()
+                if start_date > current_date:
+                    logger.warning(f"[{request_id}] Requested start date {start_date} is in the future")
+                    return {
+                        'total_cost': 0.0,
+                        'currency': 'USD',
+                        'time_period': f"{start_date} to {end_date}",
+                        'group_by': group_by,
+                        'breakdown': [],
+                        'analysis_date': datetime.utcnow().isoformat(),
+                        'start_date': start_date.isoformat(),
+                        'end_date': end_date.isoformat(),
+                        'message': f'Cannot retrieve cost data for future dates. The requested period ({start_date.strftime("%B %Y")}) is in the future.',
+                        'suggestion': 'Please specify a date range that is in the past or current month.',
+                        'error_type': 'future_date'
+                    }
+            else:
+                # Normalize natural language time periods
+                time_period = self._normalize_time_period(time_period)
+                
+                # Calculate date range based on time period
+                start_date, end_date = self._calculate_date_range(time_period)
             
             # Validate parameters
-            valid_time_periods = ['DAILY', 'MONTHLY', 'YEARLY']
             valid_granularities = ['DAILY', 'MONTHLY']
             valid_group_by = ['SERVICE', 'REGION', 'USAGE_TYPE', 'INSTANCE_TYPE']
             
-            if time_period not in valid_time_periods:
-                raise ValueError(f"Invalid time_period '{time_period}'. Must be one of: {valid_time_periods}")
-            
+            # Validate parameters
             if granularity not in valid_granularities:
                 raise ValueError(f"Invalid granularity '{granularity}'. Must be one of: {valid_granularities}")
             
             if group_by not in valid_group_by:
                 raise ValueError(f"Invalid group_by '{group_by}'. Must be one of: {valid_group_by}")
             
-            # Calculate date range based on time period
-            end_date = datetime.now().date()
-            if time_period == 'DAILY':
-                start_date = end_date - timedelta(days=1)
-                # For daily analysis, use DAILY granularity
-                granularity = 'DAILY'
-            elif time_period == 'MONTHLY':
-                # Get current month data from 1st of month to today
-                start_date = end_date.replace(day=1)
-                # Cost Explorer requires end_date to be exclusive, so we use tomorrow
-                # But if we're on the 1st day of the month, we need at least 1 day of data
-                if start_date == end_date:
-                    # If today is the 1st, we have no current month data yet
-                    # Get previous month's complete data instead
-                    if end_date.month == 1:
-                        start_date = end_date.replace(year=end_date.year-1, month=12, day=1)
-                        end_date = end_date.replace(year=end_date.year-1, month=12, day=31)
+            # Only validate time_period and calculate dates if we don't have parsed dates
+            if not parsed_dates:
+                valid_time_periods = ['DAILY', 'MONTHLY', 'YEARLY']
+                
+                if time_period not in valid_time_periods:
+                    raise ValueError(f"Invalid time_period '{time_period}'. Must be one of: {valid_time_periods}")
+                
+                # Calculate date range based on time period
+                end_date = datetime.now().date()
+                if time_period == 'DAILY':
+                    start_date = end_date - timedelta(days=1)
+                    # For daily analysis, use DAILY granularity
+                    granularity = 'DAILY'
+                elif time_period == 'MONTHLY':
+                    # Get current month data from 1st of month to today
+                    start_date = end_date.replace(day=1)
+                    # Cost Explorer requires end_date to be exclusive, so we use tomorrow
+                    # But if we're on the 1st day of the month, we need at least 1 day of data
+                    if start_date == end_date:
+                        # If today is the 1st, we have no current month data yet
+                        # Get previous month's complete data instead
+                        if end_date.month == 1:
+                            start_date = end_date.replace(year=end_date.year-1, month=12, day=1)
+                            end_date = end_date.replace(year=end_date.year-1, month=12, day=31)
+                        else:
+                            start_date = end_date.replace(month=end_date.month-1, day=1)
+                            # Get last day of previous month
+                            import calendar
+                            last_day = calendar.monthrange(end_date.year, end_date.month-1)[1]
+                            end_date = end_date.replace(month=end_date.month-1, day=last_day)
                     else:
-                        start_date = end_date.replace(month=end_date.month-1, day=1)
-                        # Get last day of previous month
-                        import calendar
-                        last_day = calendar.monthrange(end_date.year, end_date.month-1)[1]
-                        end_date = end_date.replace(month=end_date.month-1, day=last_day)
-                else:
-                    # Use current month data from 1st to today
-                    # Note: Cost Explorer end date is exclusive, so we add 1 day
-                    end_date = end_date + timedelta(days=1)
-            elif time_period == 'YEARLY':
-                # Get current year data - but ensure start_date is before end_date
-                start_date = end_date.replace(month=1, day=1)
-                # If today is Jan 1st, get previous year's data instead
-                if start_date == end_date:
-                    start_date = end_date.replace(year=end_date.year-1, month=1, day=1)
-                    end_date = end_date.replace(year=end_date.year-1, month=12, day=31)
-                # For yearly analysis, use MONTHLY granularity for better performance
-                if granularity == 'DAILY':
-                    granularity = 'MONTHLY'
+                        # Use current month data from 1st to today
+                        # Note: Cost Explorer end date is exclusive, so we add 1 day
+                        end_date = end_date + timedelta(days=1)
+                elif time_period == 'YEARLY':
+                    # Get current year data - but ensure start_date is before end_date
+                    start_date = end_date.replace(month=1, day=1)
+                    # If today is Jan 1st, get previous year's data instead
+                    if start_date == end_date:
+                        start_date = end_date.replace(year=end_date.year-1, month=1, day=1)
+                        end_date = end_date.replace(year=end_date.year-1, month=12, day=31)
+                    # For yearly analysis, use MONTHLY granularity for better performance
+                    if granularity == 'DAILY':
+                        granularity = 'MONTHLY'
+            else:
+                # For parsed dates, ensure end_date is exclusive for Cost Explorer
+                end_date = end_date + timedelta(days=1)
             
             logger.info(f"[{request_id}] Analyzing costs from {start_date} to {end_date}")
             
@@ -185,7 +219,27 @@ class CostAnalysisHandler:
             
         except ClientError as e:
             error_code = e.response.get('Error', {}).get('Code', 'Unknown')
-            if error_code == 'DataUnavailableException':
+            error_message = e.response.get('Error', {}).get('Message', str(e))
+            
+            logger.warning(f"[{request_id}] AWS Cost Explorer error: {error_code} - {error_message}")
+            
+            # Handle specific error cases with better messaging
+            if 'end date past the beginning of next month' in error_message.lower():
+                # Future date error
+                return {
+                    'total_cost': 0.0,
+                    'currency': 'USD',
+                    'time_period': time_period if not parsed_dates else f"{start_date} to {end_date}",
+                    'group_by': group_by,
+                    'breakdown': [],
+                    'analysis_date': datetime.utcnow().isoformat(),
+                    'start_date': start_date.isoformat() if 'start_date' in locals() else None,
+                    'end_date': end_date.isoformat() if 'end_date' in locals() else None,
+                    'message': f'Cannot retrieve cost data for future dates. The requested period appears to be in the future.',
+                    'suggestion': 'Please specify a date range that is in the past or current month.',
+                    'error_type': 'future_date'
+                }
+            elif error_code == 'DataUnavailableException':
                 logger.warning(f"[{request_id}] Cost data unavailable for the specified period")
                 # Try AWS Budgets API as fallback
                 budget_data = self._get_budget_costs(request_id)
@@ -196,13 +250,29 @@ class CostAnalysisHandler:
                 return {
                     'total_cost': 0.0,
                     'currency': 'USD',
-                    'time_period': time_period,
+                    'time_period': time_period if not parsed_dates else f"{start_date} to {end_date}",
                     'group_by': group_by,
                     'breakdown': [],
                     'analysis_date': datetime.utcnow().isoformat(),
                     'start_date': start_date.isoformat() if 'start_date' in locals() else None,
                     'end_date': end_date.isoformat() if 'end_date' in locals() else None,
-                    'message': 'Cost data is not available for the specified time period. Data may take up to 24 hours to appear.'
+                    'message': 'Cost data is not available for the specified time period. Data may take up to 24 hours to appear.',
+                    'suggestion': 'Try again in a few hours for more detailed cost breakdown.'
+                }
+            else:
+                # Generic AWS error
+                return {
+                    'total_cost': 0.0,
+                    'currency': 'USD',
+                    'time_period': time_period if not parsed_dates else f"{start_date} to {end_date}",
+                    'group_by': group_by,
+                    'breakdown': [],
+                    'analysis_date': datetime.utcnow().isoformat(),
+                    'start_date': start_date.isoformat() if 'start_date' in locals() else None,
+                    'end_date': end_date.isoformat() if 'end_date' in locals() else None,
+                    'message': f'AWS Cost Explorer error: {error_message}',
+                    'suggestion': 'Please try again or contact support if the issue persists.',
+                    'error_type': 'aws_error'
                 }
             logger.error(f"[{request_id}] AWS error in cost analysis: {str(e)}")
             raise
@@ -864,4 +934,114 @@ class CostAnalysisHandler:
             
         except Exception as e:
             logger.warning(f"[{request_id}] Could not get budget costs: {str(e)}")
-            return None
+            return None 
+
+    def _parse_specific_date(self, time_period: str, request_id: str) -> Optional[Tuple[date, date]]:
+        """
+        Parse specific month/year combinations like 'december_2024' or 'December 2024'.
+        
+        Returns:
+            Tuple of (start_date, end_date) if parsed successfully, None otherwise
+        """
+        import re
+        from calendar import monthrange
+        
+        time_period_lower = time_period.lower().replace('_', ' ')
+        
+        # Month name mapping
+        months = {
+            'january': 1, 'jan': 1,
+            'february': 2, 'feb': 2,
+            'march': 3, 'mar': 3,
+            'april': 4, 'apr': 4,
+            'may': 5,
+            'june': 6, 'jun': 6,
+            'july': 7, 'jul': 7,
+            'august': 8, 'aug': 8,
+            'september': 9, 'sep': 9, 'sept': 9,
+            'october': 10, 'oct': 10,
+            'november': 11, 'nov': 11,
+            'december': 12, 'dec': 12
+        }
+        
+        # Look for month and year patterns
+        found_month = None
+        found_year = None
+        
+        for month_name, month_num in months.items():
+            if month_name in time_period_lower:
+                found_month = month_num
+                logger.info(f"[{request_id}] Found month: {month_name} ({month_num})")
+                break
+        
+        # Look for year (2024, 2025, etc.)
+        year_match = re.search(r'\b(20\d{2})\b', time_period)
+        if year_match:
+            found_year = int(year_match.group(1))
+            logger.info(f"[{request_id}] Found year: {found_year}")
+        
+        # If we found a specific month/year, calculate dates
+        if found_month:
+            if not found_year:
+                # Default to current year if no year specified
+                found_year = datetime.utcnow().year
+                logger.info(f"[{request_id}] No year specified, defaulting to current year: {found_year}")
+            
+            try:
+                # Calculate start and end dates for the specific month
+                start_date = datetime(found_year, found_month, 1).date()
+                _, last_day = monthrange(found_year, found_month)
+                end_date = datetime(found_year, found_month, last_day).date()
+                
+                logger.info(f"[{request_id}] Parsed specific date range: {start_date} to {end_date}")
+                return start_date, end_date
+                
+            except Exception as e:
+                logger.error(f"[{request_id}] Error calculating specific dates: {str(e)}")
+                return None
+        
+        return None
+
+    def _calculate_date_range(self, time_period: str) -> Tuple[date, date]:
+        """
+        Calculate date range based on time period.
+        
+        Args:
+            time_period: Time period string (DAILY, MONTHLY, YEARLY)
+            
+        Returns:
+            Tuple of (start_date, end_date)
+        """
+        end_date = datetime.utcnow().date()
+        
+        if time_period == 'DAILY':
+            start_date = end_date - timedelta(days=1)
+        elif time_period == 'MONTHLY':
+            # Get current month data from 1st of month to today
+            start_date = end_date.replace(day=1)
+            # Cost Explorer requires end_date to be exclusive, so we use tomorrow
+            # But if we're on the 1st day of the month, we need at least 1 day of data
+            if start_date == end_date:
+                # If today is the 1st, we have no current month data yet
+                # Get previous month's complete data instead
+                if end_date.month == 1:
+                    start_date = end_date.replace(year=end_date.year-1, month=12, day=1)
+                    end_date = end_date.replace(year=end_date.year-1, month=12, day=31)
+                else:
+                    start_date = end_date.replace(month=end_date.month-1, day=1)
+                    # Get last day of previous month
+                    import calendar
+                    last_day = calendar.monthrange(end_date.year, end_date.month-1)[1]
+                    end_date = end_date.replace(month=end_date.month-1, day=last_day)
+        elif time_period == 'YEARLY':
+            # Get current year data - but ensure start_date is before end_date
+            start_date = end_date.replace(month=1, day=1)
+            # If today is Jan 1st, get previous year's data instead
+            if start_date == end_date:
+                start_date = end_date.replace(year=end_date.year-1, month=1, day=1)
+                end_date = end_date.replace(year=end_date.year-1, month=12, day=31)
+        else:
+            # Default to monthly
+            start_date = end_date.replace(day=1)
+        
+        return start_date, end_date
