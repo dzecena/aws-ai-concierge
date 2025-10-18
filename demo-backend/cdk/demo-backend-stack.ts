@@ -126,15 +126,32 @@ export class DemoBackendStack extends cdk.Stack {
               ],
               resources: ['*'],
             }),
+            // AWS Budgets permissions for cost fallback
+            new iam.PolicyStatement({
+              effect: iam.Effect.ALLOW,
+              actions: [
+                'budgets:DescribeBudgets',
+                'budgets:ViewBudget',
+              ],
+              resources: ['*'],
+            }),
+            // STS permissions for account ID
+            new iam.PolicyStatement({
+              effect: iam.Effect.ALLOW,
+              actions: [
+                'sts:GetCallerIdentity',
+              ],
+              resources: ['*'],
+            }),
           ],
         }),
       },
     });
 
-    // Lambda function for Bedrock Agent proxy
-    const chatHandler = new lambda.Function(this, 'BedrockAgentProxy', {
+    // Lambda function for chat handler
+    const chatHandler = new lambda.Function(this, 'ChatHandlerFunction', {
       runtime: lambda.Runtime.PYTHON_3_10,
-      handler: 'bedrock-agent-proxy.lambda_handler',
+      handler: 'chat-handler.lambda_handler',
       code: lambda.Code.fromAsset('./lambda'),
       role: lambdaRole,
       timeout: cdk.Duration.seconds(60),
